@@ -1,0 +1,14 @@
+session_name: local_art_ci
+windows:
+  - window_name: compile
+    layout: tiled
+    panes:
+      - 
+      - 
+  - window_name: device
+    layout: tiled
+    panes:
+      -
+      -
+      -
+      -

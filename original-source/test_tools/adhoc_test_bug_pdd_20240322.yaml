@@ -1,0 +1,14 @@
+session_name: 'adhoc_test_bug_pdd_20240322_tmux'
+windows:
+- focus: 'true'
+  layout: 1cd4,291x71,0,0{103x71,0,0[103x53,0,0,0,103x17,0,54,5],187x71,104,0[187x43,104,0{109x43,104,0,2,77x43,214,0,7},187x27,104,44{109x27,104,44,4,77x27,214,44,11}]}
+  options: {}
+  panes:
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  start_directory: /home/lixr
+  window_name: main_debug

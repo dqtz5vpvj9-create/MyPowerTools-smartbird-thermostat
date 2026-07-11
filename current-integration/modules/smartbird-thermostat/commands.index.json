@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "1.0",
+  "commands": [
+    {
+      "id": "smartbird-thermostat.status.fetch",
+      "title": "Fetch thermostat status",
+      "subtitle": "Queries status and dependency health through the SmartBird facade",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "timeoutMs": 10000,
+      "execution": {
+        "type": "module.execute"
+      }
+    },
+    {
+      "id": "smartbird-thermostat.status.summary",
+      "title": "Summarize thermostat status",
+      "subtitle": "Reports SmartBird service, Energy Server, and ADB readiness",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "timeoutMs": 10000,
+      "execution": {
+        "type": "module.execute"
+      }
+    },
+    {
+      "id": "smartbird-thermostat.events.list",
+      "title": "List thermostat events",
+      "subtitle": "Reads recent thermostat events or returns an actionable degraded event source",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "timeoutMs": 10000,
+      "execution": {
+        "type": "module.execute"
+      }
+    },
+    {
+      "id": "smartbird-thermostat.logs.summary",
+      "title": "Summarize thermostat logs",
+      "subtitle": "Reads the original scheduled-task service log and Runner-managed module logs",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "timeoutMs": 10000,
+      "execution": {
+        "type": "module.execute"
+      }
+    },
+    {
+      "id": "smartbird-thermostat.config.get",
+      "title": "Read thermostat config",
+      "subtitle": "Reads the local module policy and source-derived runtime configuration",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "timeoutMs": 10000,
+      "execution": {
+        "type": "module.execute"
+      }
+    },
+    {
+      "id": "smartbird-thermostat.config.save",
+      "title": "Save thermostat config",
+      "subtitle": "Validates and persists SmartBird facade policy settings",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "timeoutMs": 10000,
+      "parameters": [
+        {
+          "id": "baseUrl",
+          "label": "Base URL",
+          "type": "text",
+          "required": false,
+          "defaultValue": ""
+        },
+        {
+          "id": "targetTemperatureC",
+          "label": "Target temperature C",
+          "type": "number",
+          "required": false,
+          "defaultValue": "22"
+        }
+      ],
+      "execution": {
+        "type": "module.execute"
+      }
+    },
+    {
+      "id": "smartbird-thermostat.hardware.diagnostics",
+      "title": "Check thermostat hardware dependencies",
+      "subtitle": "Checks source-backed Energy Server and ADB dependency readiness",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "timeoutMs": 10000,
+      "execution": {
+        "type": "module.execute"
+      }
+    },
+    {
+      "id": "smartbird-thermostat.self-test",
+      "title": "Run thermostat facade self-test",
+      "subtitle": "Verifies paths, settings schema, endpoints, and redaction",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "timeoutMs": 10000,
+      "execution": {
+        "type": "module.execute"
+      }
+    },
+    {
+      "id": "smartbird-thermostat.service.restart",
+      "title": "Request thermostat service restart",
+      "subtitle": "Builds an audited scheduled-task restart request",
+      "kind": "action",
+      "category": "SmartBird Thermostat",
+      "requiresElevation": true,
+      "dangerLevel": "medium",
+      "timeoutMs": 10000,
+      "parameters": [
+        {
+          "id": "reason",
+          "label": "Reason",
+          "type": "multiline",
+          "required": false,
+          "defaultValue": "Restart SmartBird thermostat service after degraded diagnostics."
+        }
+      ],
+      "constraints": [
+        "mutatesSystemState",
+        "requiresElevatedWrites"
+      ],
+      "execution": {
+        "type": "module.execute",
+        "brokerApprovalOnly": true
+      }
+    }
+  ]
+}

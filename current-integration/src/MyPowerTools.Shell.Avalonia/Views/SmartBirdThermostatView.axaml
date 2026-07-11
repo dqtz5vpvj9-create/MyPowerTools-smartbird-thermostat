@@ -1,0 +1,172 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:MyPowerTools.Shell.Avalonia.Views"
+             xmlns:controls="using:MyPowerTools.UI.Controls"
+             xmlns:vm="using:MyPowerTools.Shell.Avalonia.ViewModels"
+             x:Class="MyPowerTools.Shell.Avalonia.Views.SmartBirdThermostatView"
+             x:DataType="vm:SmartBirdThermostatViewModel"
+             MinHeight="560">
+  <UserControl.Styles>
+    <Style Selector="Border.SmartBirdOnlineBadge">
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderBrush" Value="{DynamicResource MptBrushSuccess}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.SmartBirdOfflineBadge">
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderBrush" Value="{DynamicResource MptBrushWarning}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="TextBlock.SmartBirdStatusText">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*"
+        RowSpacing="10">
+    <Grid ColumnDefinitions="*,Auto"
+          ColumnSpacing="20">
+      <Grid ColumnDefinitions="Auto,Auto,*"
+            ColumnSpacing="12"
+            VerticalAlignment="Center">
+        <TextBlock Classes="MptPageTitle"
+                   Text="SmartBird 温度管理器"
+                   ToolTip.Tip="露点保护、散热器控制与能耗会话" />
+        <Grid Grid.Column="1"
+              VerticalAlignment="Center">
+          <Border Classes="SmartBirdOnlineBadge"
+                  IsVisible="{Binding IsServiceOnline}"
+                  VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="{DynamicResource MptSpacingS}">
+              <Ellipse Width="7"
+                       Height="7"
+                       Fill="{DynamicResource MptBrushSuccess}" />
+              <TextBlock Classes="SmartBirdStatusText"
+                         Foreground="{DynamicResource MptBrushSuccess}"
+                         Text="{Binding ConnectionLabel}" />
+            </StackPanel>
+          </Border>
+          <Border Classes="SmartBirdOfflineBadge"
+                  IsVisible="{Binding IsServiceOffline}"
+                  VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="{DynamicResource MptSpacingS}">
+              <Ellipse Width="7"
+                       Height="7"
+                       Fill="{DynamicResource MptBrushWarning}" />
+              <TextBlock Classes="SmartBirdStatusText"
+                         Foreground="{DynamicResource MptBrushWarning}"
+                         Text="{Binding ConnectionLabel}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+        <StackPanel Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource MptSpacingM}"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding IsServiceOnline}">
+          <TextBlock Classes="MptMeta" Text="{Binding ModeLabel}" />
+          <TextBlock Classes="MptMeta" Text="·" />
+          <TextBlock Classes="MptMeta" Text="{Binding CoolingLabel}" />
+          <TextBlock Classes="MptMeta" Text="·" />
+          <TextBlock Classes="MptMeta" Text="{Binding SurfaceLabel}" />
+          <TextBlock Classes="MptMeta" Text="·" />
+          <TextBlock Classes="MptMeta" Text="{Binding DeviceLabel}" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Grid.Column="1"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource MptSpacingS}"
+                  VerticalAlignment="Center">
+        <controls:MptButton Command="{Binding RefreshCommand}"
+                            Content="刷新" />
+        <controls:MptButton Classes="MptPrimaryButton"
+                            Command="{Binding OpenInBrowserCommand}"
+                            Content="在浏览器中打开" />
+      </StackPanel>
+    </Grid>
+
+    <Border Grid.Row="1"
+            Classes="MptCard"
+            ClipToBounds="True"
+            MinHeight="470">
+      <Grid Background="{DynamicResource MptBrushSurfaceInset}">
+        <local:SmartBirdWebView x:Name="EmbeddedBrowser"
+                                Source="{Binding DashboardUri}"
+                                IsVisible="{Binding IsWebViewHostVisible}"
+                                Focusable="True"
+                                TabIndex="0"
+                                AutomationProperties.Name="SmartBird 温度管理器网页控制台"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch" />
+
+        <Grid IsVisible="{Binding IsFallbackVisible}"
+              Margin="{DynamicResource MptPagePadding}">
+          <Border Classes="MptCard"
+                  Width="620"
+                  MaxWidth="620"
+                  Padding="{DynamicResource MptOverlayPanelPadding}"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                  RowSpacing="18">
+              <Border Width="56"
+                      Height="56"
+                      CornerRadius="12"
+                      Background="{DynamicResource MptBrushSurfaceInset}"
+                      HorizontalAlignment="Left">
+                <TextBlock Text="SB"
+                           FontSize="{DynamicResource MptFontSizeSection}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource MptBrushAccent}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+              </Border>
+
+              <StackPanel Grid.Row="1"
+                          Spacing="{DynamicResource MptSpacingS}">
+                <TextBlock Classes="MptSectionTitle"
+                           Text="{Binding FallbackTitle}"
+                           TextWrapping="Wrap" />
+                <TextBlock Classes="MptPageSubtitle"
+                           Text="{Binding FallbackDetail}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+
+              <Border Grid.Row="2"
+                      Classes="MptInset">
+                <StackPanel Spacing="{DynamicResource MptSpacingXs}">
+                  <TextBlock Classes="MptMeta"
+                             Text="本机控制台" />
+                  <TextBlock Classes="MptMono"
+                             Text="{Binding FallbackActionHint}"
+                             FontFamily="{DynamicResource MptFontFamilyMono}"
+                             Foreground="{DynamicResource MptBrushTextSecondary}"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+
+              <StackPanel Grid.Row="3"
+                          Orientation="Horizontal"
+                          Spacing="{DynamicResource MptSpacingS}">
+                <controls:MptButton Classes="MptPrimaryButton"
+                                    Command="{Binding StartServiceCommand}"
+                                    Content="启动后台服务"
+                                    IsVisible="{Binding ShowStartServiceAction}" />
+                <controls:MptButton Command="{Binding RefreshCommand}"
+                                    Content="重试" />
+                <controls:MptButton Command="{Binding OpenInBrowserCommand}"
+                                    Content="在浏览器中打开" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Grid>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>
