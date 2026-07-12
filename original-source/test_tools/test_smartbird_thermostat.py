@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -143,6 +144,16 @@ Current cooling devices from HAL:
         self.assertEqual([cmd[2] for cmd in calls], ["10.33.0.243:5555", "192.168.29.79:35559"])
         self.assertEqual(sample.surface_c, 31.25)
         self.assertEqual(sample.sensor_name, "VIRTUAL-SKIN@192.168.29.79:35559")
+
+    def test_android_thermal_reader_prefers_bundled_adb_over_path(self):
+        with (
+            patch.dict(os.environ, {"ADB_PATH": ""}),
+            patch("test_tools.smartbird_thermostat.Path.is_file", return_value=True),
+            patch("test_tools.smartbird_thermostat.shutil.which", return_value=r"D:\\AndroidSDK\\adb.exe"),
+        ):
+            resolved = AndroidThermalReader._resolve_adb_executable()
+
+        self.assertTrue(resolved.endswith(r"Tools\AndroidPlatformTools\adb.exe"))
 
     def test_experiment_start_forces_cooling_on(self):
         thermostat, switch, _clock = make_thermostat(surface_c=22.0, switch_key=KEY_OFF)

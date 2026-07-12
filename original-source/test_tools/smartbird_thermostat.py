@@ -266,15 +266,15 @@ class AndroidThermalReader:
         if configured:
             return configured
 
-        discovered = shutil.which("adb")
-        if discovered:
-            return discovered
-
         script_path = Path(__file__).resolve()
         if len(script_path.parents) > 3:
             bundled = script_path.parents[3] / "Tools" / "AndroidPlatformTools" / "adb.exe"
             if bundled.is_file():
                 return str(bundled)
+
+        discovered = shutil.which("adb")
+        if discovered:
+            return discovered
 
         return "adb"
 
