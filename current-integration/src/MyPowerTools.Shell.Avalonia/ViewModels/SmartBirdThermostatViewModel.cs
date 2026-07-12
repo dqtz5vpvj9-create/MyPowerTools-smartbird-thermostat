@@ -13,7 +13,7 @@ public enum SmartBirdEmbeddedBrowserState
     Failed
 }
 
-public sealed class SmartBirdThermostatViewModel : ToolProductPageViewModel
+public sealed partial class SmartBirdThermostatViewModel : ToolProductPageViewModel
 {
     private readonly Func<Task<SmartBirdThermostatSnapshot>>? _refresh;
     private readonly Func<Task<SmartBirdThermostatSnapshot>>? _startService;
@@ -29,7 +29,8 @@ public sealed class SmartBirdThermostatViewModel : ToolProductPageViewModel
         Func<Task<SmartBirdThermostatSnapshot>>? refresh = null,
         Func<Task<SmartBirdThermostatSnapshot>>? startService = null,
         Func<Uri, Task>? openExternal = null,
-        bool embeddedBrowserSupported = true)
+        bool embeddedBrowserSupported = true,
+        SmartBirdThermostatSettingsService? settingsService = null)
         : base(
             "SmartBird 温度管理器",
             "露点保护、散热器控制与能耗会话",
@@ -39,6 +40,7 @@ public sealed class SmartBirdThermostatViewModel : ToolProductPageViewModel
         _refresh = refresh;
         _startService = startService;
         _openExternal = openExternal ?? OpenWithSystemBrowserAsync;
+        _settingsService = settingsService ?? new SmartBirdThermostatSettingsService();
         EmbeddedBrowserSupported = embeddedBrowserSupported;
         _browserState = embeddedBrowserSupported
             ? SmartBirdEmbeddedBrowserState.Loading
@@ -49,6 +51,7 @@ public sealed class SmartBirdThermostatViewModel : ToolProductPageViewModel
         OpenInBrowserCommand = new AsyncRelayCommand(
             () => OpenExternalAsync(DashboardUri),
             () => !IsBusy);
+        InitializeSettingsCommands();
     }
 
     public bool EmbeddedBrowserSupported { get; }
@@ -142,6 +145,7 @@ public sealed class SmartBirdThermostatViewModel : ToolProductPageViewModel
             ((AsyncRelayCommand)RefreshCommand).NotifyCanExecuteChanged();
             ((AsyncRelayCommand)StartServiceCommand).NotifyCanExecuteChanged();
             ((AsyncRelayCommand)OpenInBrowserCommand).NotifyCanExecuteChanged();
+            NotifySettingsCommandStateChanged();
         }
     }
 

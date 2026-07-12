@@ -7,6 +7,7 @@ param(
     [string]$RepoRoot = "",
     [string]$PythonPath = "",
     [string]$DataRoot = "",
+    [string]$SettingsFile = "",
 
     [string]$ServiceHost = "127.0.0.1",
     [int]$ServicePort = 19002,
@@ -107,13 +108,18 @@ $DataRoot = [System.IO.Path]::GetFullPath($DataRoot)
 $ServiceScript = Join-Path $RepoRoot "test_tools\smartbird_thermostat_service.py"
 $LogDir = Join-Path $DataRoot "logs"
 $LogFile = Join-Path $LogDir "smartbird_thermostat_service.log"
-$PersistenceDir = Join-Path $DataRoot "data"
 $ConhostPath = Join-Path $env:WINDIR "System32\conhost.exe"
+if ([string]::IsNullOrWhiteSpace($SettingsFile)) {
+    $SettingsFile = Join-Path $DataRoot "settings.json"
+}
+$SettingsFile = [System.IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($SettingsFile))
+$TaskEntryScript = Join-Path $RepoRoot "test_tools\smartbird_thermostat_task.py"
 
 function Stop-SmartBirdTaskProcesses {
     $servicePattern = [regex]::Escape($ServiceScript)
+    $taskEntryPattern = [regex]::Escape($TaskEntryScript)
     $targets = Get-CimInstance Win32_Process |
-        Where-Object { $_.CommandLine -match $servicePattern } |
+        Where-Object { $_.CommandLine -match $servicePattern -or $_.CommandLine -match $taskEntryPattern } |
         Select-Object ProcessId, ParentProcessId, CommandLine
     foreach ($target in $targets) {
         Stop-Process -Id $target.ProcessId -Force -ErrorAction SilentlyContinue
@@ -125,10 +131,55 @@ switch ($Mode) {
         if (-not (Test-Path $ServiceScript)) {
             throw "Service script not found: $ServiceScript"
         }
+        if (-not (Test-Path $TaskEntryScript)) {
+            throw "Task entry script not found: $TaskEntryScript"
+        }
         if (-not (Test-Path $ConhostPath)) {
             throw "conhost.exe not found: $ConhostPath"
         }
         New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+        if (-not (Test-Path -LiteralPath $SettingsFile -PathType Leaf)) {
+            $defaultSettings = [ordered]@{
+                serviceHost = $ServiceHost
+                servicePort = $ServicePort
+                smartBirdHost = $SmartBirdHost
+                smartBirdPort = $SmartBirdPort
+                adbSerials = $AdbSerial
+                loopSec = $LoopSec
+                minOnSec = $MinOnSec
+                minOffSec = $MinOffSec
+                marginC = $MarginC
+                minSurfaceC = $MinSurfaceC
+                onSurfaceC = $OnSurfaceC
+                hysteresisC = $HysteresisC
+                defaultAmbientC = $DefaultAmbientC
+                defaultRh = $DefaultRh
+                amapCity = $AmapCity
+                amapTimeoutSec = 3.0
+                weatherRefreshSec = 300.0
+                energyServerEnabled = $false
+                energyServerUrl = "http://127.0.0.1:18988"
+                energyBackend = "hid"
+                usbMeterSelectorMode = "auto"
+                usbMeterSelector = ""
+                energyAllowUnsafeControl = $false
+                notificationsEnabled = $false
+                smtpHost = "smtp.163.com"
+                smtpPort = 465
+                smtpSsl = $true
+                smtpStartTls = $false
+                smtpUsername = ""
+                smtpSender = ""
+                smtpRecipients = ""
+                notificationMonitorSec = 30.0
+                notificationCooldownSec = 1800.0
+                notificationSendRecovery = $true
+                notificationExpectedMinDevices = 0
+            }
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $SettingsFile) | Out-Null
+            $settingsJson = $defaultSettings | ConvertTo-Json -Depth 4
+            [System.IO.File]::WriteAllText($SettingsFile, $settingsJson, [System.Text.UTF8Encoding]::new($false))
+        }
         $ResolvedPython = Get-PythonPath
 
         & $ConhostPath --headless "$env:WINDIR\System32\cmd.exe" /c exit 0
@@ -138,24 +189,10 @@ switch ($Mode) {
 
         $serviceArgs = @(
             (Quote-NativeArg $ResolvedPython),
-            (Quote-NativeArg $ServiceScript),
-            "--host", (Quote-NativeArg $ServiceHost),
-            "--port", "$ServicePort",
-            "--smartbird-host", (Quote-NativeArg $SmartBirdHost),
-            "--smartbird-port", "$SmartBirdPort",
-            "--adb-serial", (Quote-NativeArg $AdbSerial),
-            "--loop-sec", "$LoopSec",
-            "--min-on-sec", "$MinOnSec",
-            "--min-off-sec", "$MinOffSec",
-            "--margin-c", "$MarginC",
-            "--min-surface-c", "$MinSurfaceC",
-            "--on-surface-c", "$OnSurfaceC",
-            "--hysteresis-c", "$HysteresisC",
-            "--default-ambient-c", "$DefaultAmbientC",
-            "--default-rh", "$DefaultRh",
-            "--amap-city", (Quote-NativeArg $AmapCity),
-            "--log-file", (Quote-NativeArg $LogFile),
-            "--data-dir", (Quote-NativeArg $PersistenceDir)
+            (Quote-NativeArg $TaskEntryScript),
+            "--settings-file", (Quote-NativeArg $SettingsFile),
+            "--data-root", (Quote-NativeArg $DataRoot),
+            "--log-file", (Quote-NativeArg $LogFile)
         )
         $actionArgs = "--headless " + ($serviceArgs -join " ")
 
@@ -171,7 +208,7 @@ switch ($Mode) {
             -RestartCount 3 `
             -RestartInterval (New-TimeSpan -Minutes 1)
         $principal = New-ScheduledTaskPrincipal `
-            -UserId "$env:USERDOMAIN\$env:USERNAME" `
+            -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) `
             -LogonType Interactive `
             -RunLevel Limited
 
@@ -216,6 +253,9 @@ switch ($Mode) {
     }
 
     "Restart" {
+        if ($null -eq (Get-TaskOrNull -Name $TaskName)) {
+            throw "SmartBird Thermostat task is not installed. Repair the MyPowerTools installation first."
+        }
         Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
         Stop-SmartBirdTaskProcesses
         Start-Sleep -Seconds 2

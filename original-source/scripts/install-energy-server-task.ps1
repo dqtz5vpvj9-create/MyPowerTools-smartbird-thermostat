@@ -6,6 +6,8 @@ param(
     [string]$TaskName = "EnergyServer",
     [string]$RepoRoot = "",
     [string]$PythonPath = "",
+    [string]$DataRoot = "",
+    [string]$SettingsFile = "",
     [switch]$StartAfterInstall
 )
 
@@ -76,6 +78,17 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
 $RepoRoot = (Resolve-Path $RepoRoot).Path
 $EntryScript = Join-Path $RepoRoot "test_tools\energy_server_task.py"
 $ConhostPath = Join-Path $env:WINDIR "System32\conhost.exe"
+if ([string]::IsNullOrWhiteSpace($DataRoot)) {
+    $LocalAppData = [Environment]::GetFolderPath("LocalApplicationData")
+    $DataRoot = Join-Path $LocalAppData "MyPowerTools\SmartBird"
+}
+$DataRoot = [System.IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($DataRoot))
+if ([string]::IsNullOrWhiteSpace($SettingsFile)) {
+    $SettingsFile = Join-Path $DataRoot "settings.json"
+}
+$SettingsFile = [System.IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($SettingsFile))
+$LogDir = Join-Path $DataRoot "logs"
+$LogFile = Join-Path $LogDir "energy_server.log"
 
 function Stop-EnergyServerTaskProcesses {
     $entryPattern = [regex]::Escape($EntryScript)
@@ -95,6 +108,10 @@ switch ($Mode) {
         if (-not (Test-Path $ConhostPath)) {
             throw "conhost.exe not found: $ConhostPath"
         }
+        if (-not (Test-Path -LiteralPath $SettingsFile -PathType Leaf)) {
+            throw "SmartBird settings file not found: $SettingsFile"
+        }
+        New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
         $ResolvedPython = Get-PythonPath
 
         & $ConhostPath --headless "$env:WINDIR\System32\cmd.exe" /c exit 0
@@ -104,7 +121,10 @@ switch ($Mode) {
 
         $actionArgs = "--headless " + @(
             (Quote-NativeArg $ResolvedPython),
-            (Quote-NativeArg $EntryScript)
+            (Quote-NativeArg $EntryScript),
+            "--settings-file", (Quote-NativeArg $SettingsFile),
+            "--data-root", (Quote-NativeArg $DataRoot),
+            "--log-file", (Quote-NativeArg $LogFile)
         ) -join " "
 
         $action = New-ScheduledTaskAction `
@@ -119,7 +139,7 @@ switch ($Mode) {
             -RestartCount 3 `
             -RestartInterval (New-TimeSpan -Minutes 1)
         $principal = New-ScheduledTaskPrincipal `
-            -UserId "$env:USERDOMAIN\$env:USERNAME" `
+            -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) `
             -LogonType Interactive `
             -RunLevel Limited
 
@@ -151,12 +171,19 @@ switch ($Mode) {
     }
 
     "Start" {
+        if ($null -eq (Get-TaskOrNull -Name $TaskName)) {
+            throw "Energy Server task is not installed. Repair the MyPowerTools installation first."
+        }
         Start-ScheduledTask -TaskName $TaskName
         Start-Sleep -Seconds 2
         Show-Status -Name $TaskName
     }
 
     "Stop" {
+        if ($null -eq (Get-TaskOrNull -Name $TaskName)) {
+            Show-Status -Name $TaskName
+            break
+        }
         Stop-ScheduledTask -TaskName $TaskName
         Stop-EnergyServerTaskProcesses
         Start-Sleep -Seconds 2
@@ -164,6 +191,9 @@ switch ($Mode) {
     }
 
     "Restart" {
+        if ($null -eq (Get-TaskOrNull -Name $TaskName)) {
+            throw "Energy Server task is not installed. Repair the MyPowerTools installation first."
+        }
         Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
         Stop-EnergyServerTaskProcesses
         Start-Sleep -Seconds 2
