@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "toolId": "smartbird-thermostat",
+  "packageId": "smartbird-thermostat",
+  "version": "0.2.0",
+  "moduleIds": [
+    "smartbird-thermostat"
+  ],
+  "adapter": {
+    "project": "current-integration/src/SmartBirdThermostat.MyPowerTools/SmartBirdThermostat.MyPowerTools.csproj",
+    "assembly": "SmartBirdThermostat.MyPowerTools.dll",
+    "configuration": "Release",
+    "requiredMsbuildProperties": [
+      "MyPowerToolsRepoRoot"
+    ],
+    "suiteProjectReferences": [
+      "src/MyPowerTools.Abstractions/MyPowerTools.Abstractions.csproj",
+      "src/MyPowerTools.Protocol/MyPowerTools.Protocol.csproj"
+    ]
+  },
+  "package": {
+    "template": "current-integration/modules/smartbird-thermostat",
+    "output": "artifacts/package",
+    "integrityRequiresRefresh": true
+  },
+  "buildScript": "build.ps1"
+}

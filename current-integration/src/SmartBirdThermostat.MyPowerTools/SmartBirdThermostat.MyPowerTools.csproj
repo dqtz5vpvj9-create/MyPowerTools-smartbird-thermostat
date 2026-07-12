@@ -1,16 +1,27 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk" InitialTargets="ValidateMyPowerToolsRepoRoot">
 
-  <ItemGroup>
-    <ProjectReference Include="..\MyPowerTools.Abstractions\MyPowerTools.Abstractions.csproj" />
-    <ProjectReference Include="..\MyPowerTools.Protocol\MyPowerTools.Protocol.csproj" />
+  <ItemGroup Condition="'$(MyPowerToolsRepoRoot)' != ''">
+    <ProjectReference Include="$(MyPowerToolsRepoRoot)\src\MyPowerTools.Abstractions\MyPowerTools.Abstractions.csproj"
+                      Condition="Exists('$(MyPowerToolsRepoRoot)\src\MyPowerTools.Abstractions\MyPowerTools.Abstractions.csproj')" />
+    <ProjectReference Include="$(MyPowerToolsRepoRoot)\src\MyPowerTools.Protocol\MyPowerTools.Protocol.csproj"
+                      Condition="Exists('$(MyPowerToolsRepoRoot)\src\MyPowerTools.Protocol\MyPowerTools.Protocol.csproj')" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ModulePackageRoot>$(MSBuildProjectDirectory)\..\..\modules\smartbird-thermostat</ModulePackageRoot>
+    <ModulePackageRoot Condition="'$(ModulePackageRoot)' == ''">$(MSBuildProjectDirectory)\..\..\modules\smartbird-thermostat</ModulePackageRoot>
   </PropertyGroup>
+
+  <Target Name="ValidateMyPowerToolsRepoRoot">
+    <Error Condition="'$(MyPowerToolsRepoRoot)' == ''"
+           Text="MyPowerToolsRepoRoot is required. Run build.ps1 or pass -p:MyPowerToolsRepoRoot=&lt;absolute MyPowerTools repository path&gt;." />
+    <Error Condition="'$(MyPowerToolsRepoRoot)' != '' and !Exists('$(MyPowerToolsRepoRoot)\src\MyPowerTools.Abstractions\MyPowerTools.Abstractions.csproj')"
+           Text="MyPowerToolsRepoRoot does not contain src\MyPowerTools.Abstractions\MyPowerTools.Abstractions.csproj: $(MyPowerToolsRepoRoot)" />
+    <Error Condition="'$(MyPowerToolsRepoRoot)' != '' and !Exists('$(MyPowerToolsRepoRoot)\src\MyPowerTools.Protocol\MyPowerTools.Protocol.csproj')"
+           Text="MyPowerToolsRepoRoot does not contain src\MyPowerTools.Protocol\MyPowerTools.Protocol.csproj: $(MyPowerToolsRepoRoot)" />
+  </Target>
 
   <Target Name="CopyModuleAssemblyToPackage" AfterTargets="Build">
     <MakeDir Directories="$(ModulePackageRoot)" />
