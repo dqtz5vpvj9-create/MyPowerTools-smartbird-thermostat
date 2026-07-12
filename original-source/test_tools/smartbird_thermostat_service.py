@@ -1701,7 +1701,7 @@ def build_config(args) -> SmartBirdThermalConfig:
         min_on_sec=pick("min_on_sec", env_config.min_on_sec),
         min_off_sec=pick("min_off_sec", env_config.min_off_sec),
         plum_rain_margin_c=pick("margin_c", env_config.plum_rain_margin_c),
-        condensation_guard_c=env_config.condensation_guard_c,
+        condensation_guard_c=pick("guard_c", env_config.condensation_guard_c),
         protection_min_surface_c=pick("min_surface_c", env_config.protection_min_surface_c),
         protection_on_surface_c=pick("on_surface_c", env_config.protection_on_surface_c),
         protection_hysteresis_c=pick("hysteresis_c", env_config.protection_hysteresis_c),
@@ -1783,6 +1783,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-on-sec", type=float, default=None)
     parser.add_argument("--min-off-sec", type=float, default=None)
     parser.add_argument("--margin-c", type=float, default=None)
+    parser.add_argument("--guard-c", type=float, default=None)
     parser.add_argument("--min-surface-c", type=float, default=None)
     parser.add_argument("--on-surface-c", type=float, default=None)
     parser.add_argument("--hysteresis-c", type=float, default=None)

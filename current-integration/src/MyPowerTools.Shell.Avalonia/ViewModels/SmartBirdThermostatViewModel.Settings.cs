@@ -19,6 +19,7 @@ public sealed partial class SmartBirdThermostatViewModel
     private string _minOnSec = "60";
     private string _minOffSec = "60";
     private string _marginC = "5";
+    private string _condensationGuardC = "3";
     private string _minSurfaceC = "30";
     private string _onSurfaceC = "35";
     private string _hysteresisC = "4";
@@ -85,6 +86,7 @@ public sealed partial class SmartBirdThermostatViewModel
     public string MinOnSec { get => _minOnSec; set => SetProperty(ref _minOnSec, value); }
     public string MinOffSec { get => _minOffSec; set => SetProperty(ref _minOffSec, value); }
     public string MarginC { get => _marginC; set => SetProperty(ref _marginC, value); }
+    public string CondensationGuardC { get => _condensationGuardC; set => SetProperty(ref _condensationGuardC, value); }
     public string MinSurfaceC { get => _minSurfaceC; set => SetProperty(ref _minSurfaceC, value); }
     public string OnSurfaceC { get => _onSurfaceC; set => SetProperty(ref _onSurfaceC, value); }
     public string HysteresisC { get => _hysteresisC; set => SetProperty(ref _hysteresisC, value); }
@@ -233,6 +235,7 @@ public sealed partial class SmartBirdThermostatViewModel
             MinOnSec = ParseDouble(MinOnSec, "最短开启时间"),
             MinOffSec = ParseDouble(MinOffSec, "最短关闭时间"),
             MarginC = ParseDouble(MarginC, "露点余量"),
+            CondensationGuardC = ParseDouble(CondensationGuardC, "冷凝保护差值"),
             MinSurfaceC = ParseDouble(MinSurfaceC, "最低表面温度"),
             OnSurfaceC = ParseDouble(OnSurfaceC, "开启表面温度"),
             HysteresisC = ParseDouble(HysteresisC, "温控滞回"),
@@ -274,6 +277,7 @@ public sealed partial class SmartBirdThermostatViewModel
         MinOnSec = Number(value.MinOnSec);
         MinOffSec = Number(value.MinOffSec);
         MarginC = Number(value.MarginC);
+        CondensationGuardC = Number(value.CondensationGuardC);
         MinSurfaceC = Number(value.MinSurfaceC);
         OnSurfaceC = Number(value.OnSurfaceC);
         HysteresisC = Number(value.HysteresisC);

@@ -63,6 +63,53 @@ public sealed class SmartBirdThermostatProductTests
     }
 
     [Fact]
+    public async Task Service_and_embedded_dashboard_follow_the_saved_loopback_port()
+    {
+        var root = Path.Combine(
+            Path.GetTempPath(),
+            "mpt-smartbird-dashboard-endpoint-test",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(root, "settings.json"),
+                """
+                {
+                  "serviceHost": "0.0.0.0",
+                  "servicePort": 29123,
+                  "condensationGuardC": 2.5
+                }
+                """);
+            Uri? requestedUri = null;
+            using var httpClient = new HttpClient(new StubHttpMessageHandler(request =>
+            {
+                requestedUri = request.RequestUri;
+                return JsonResponse("""{"mode":"dewpoint_protection","switch":{"client_count":0}}""");
+            }));
+            using var service = new SmartBirdThermostatToolService(
+                httpClient,
+                new SmartBirdThermostatSettingsService(root));
+
+            var snapshot = await service.LoadAsync();
+
+            Assert.Equal(new Uri("http://127.0.0.1:29123/api/status"), requestedUri);
+            Assert.Equal(new Uri("http://127.0.0.1:29123/"), snapshot.DashboardUri);
+            Assert.True(SmartBirdWebNavigationPolicy.IsSupportedWebUri(snapshot.DashboardUri));
+            Assert.True(SmartBirdWebNavigationPolicy.HasSameOrigin(
+                snapshot.DashboardUri,
+                new Uri("http://127.0.0.1:29123/ui")));
+            Assert.False(SmartBirdWebNavigationPolicy.HasSameOrigin(
+                snapshot.DashboardUri,
+                new Uri("http://127.0.0.1:19002/")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Unavailable_service_returns_an_actionable_offline_snapshot()
     {
         using var httpClient = new HttpClient(new StubHttpMessageHandler(_ =>
@@ -311,6 +358,7 @@ public sealed class SmartBirdThermostatProductTests
         Assert.Contains("SetWindowRgn", hostWindow);
         Assert.Contains("--parent-hwnd", hostProgram);
         Assert.Contains("--parent-pid", hostProgram);
+        Assert.Contains("--source", hostProgram);
         Assert.Contains("--isolation-probe", hostProgram);
         Assert.Contains("--isolation-crash-probe", hostProgram);
     }

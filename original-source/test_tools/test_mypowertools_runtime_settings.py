@@ -20,6 +20,7 @@ class MyPowerToolsRuntimeSettingsTests(unittest.TestCase):
             "minOnSec": 11,
             "minOffSec": 12,
             "marginC": 6,
+            "condensationGuardC": 2.5,
             "minSurfaceC": 31,
             "onSurfaceC": 36,
             "hysteresisC": 3,
@@ -39,6 +40,7 @@ class MyPowerToolsRuntimeSettingsTests(unittest.TestCase):
         self.assertEqual("device-a,device-b", pairs["--adb-serial"])
         self.assertEqual("2.5", pairs["--loop-sec"])
         self.assertEqual("6", pairs["--margin-c"])
+        self.assertEqual("2.5", pairs["--guard-c"])
         self.assertEqual("110000", pairs["--amap-city"])
         self.assertEqual("http://127.0.0.1:28988", pairs["--energy-server-url"])
 
@@ -58,6 +60,14 @@ class MyPowerToolsRuntimeSettingsTests(unittest.TestCase):
         self.assertIn("meter-a", arguments)
         self.assertIn("meter-b", arguments)
         self.assertIn("safe_readonly", arguments)
+
+    def test_managed_energy_server_rejects_an_endpoint_it_cannot_bind(self):
+        settings = {
+            "energyServerUrl": "https://energy.example.test:28988/api",
+            "energyBackend": "hid",
+        }
+        with self.assertRaisesRegex(ValueError, "http://127.0.0.1"):
+            build_server_args(settings)
 
     def test_release_source_contains_both_tasks_and_runtime_dependencies(self):
         source_root = Path(__file__).resolve().parents[1]

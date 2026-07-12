@@ -32,11 +32,8 @@ public static class SmartBirdWebNavigationPolicy
 {
     public static bool IsSupportedWebUri(Uri? uri)
     {
-        return uri is { IsAbsoluteUri: true } &&
-               string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-               string.Equals(uri.Host, "127.0.0.1", StringComparison.Ordinal) &&
-               uri.Port == 19002 &&
-               string.IsNullOrEmpty(uri.UserInfo);
+        return MyPowerTools.Shell.Avalonia.Services.SmartBirdThermostatToolService
+            .IsSupportedDashboardOrigin(uri);
     }
 
     public static bool HasSameOrigin(Uri allowed, Uri target)
@@ -131,9 +128,10 @@ public sealed class SmartBirdWebView : Control
                 StopHost();
                 NotifyState(
                     SmartBirdWebViewState.Unavailable,
-                    "SmartBird 控制台仅允许使用本机 127.0.0.1:19002。");
+                    "SmartBird 控制台仅允许使用已保存的本机 HTTP 端点。");
                 return;
             }
+            StopHost();
             StartHostIfEligible();
         }
         else if (change.Property == IsVisibleProperty)
@@ -227,6 +225,8 @@ public sealed class SmartBirdWebView : Control
         startInfo.ArgumentList.Add(platformHandle.Handle.ToInt64().ToString(CultureInfo.InvariantCulture));
         startInfo.ArgumentList.Add("--parent-pid");
         startInfo.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+        startInfo.ArgumentList.Add("--source");
+        startInfo.ArgumentList.Add(Source!.AbsoluteUri);
 
         try
         {

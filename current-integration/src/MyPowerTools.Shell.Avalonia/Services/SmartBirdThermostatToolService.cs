@@ -14,27 +14,31 @@ public sealed class SmartBirdThermostatToolService : IDisposable
 
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
+    private readonly SmartBirdThermostatSettingsService _settingsService;
 
-    public SmartBirdThermostatToolService(HttpClient? httpClient = null)
+    public SmartBirdThermostatToolService(
+        HttpClient? httpClient = null,
+        SmartBirdThermostatSettingsService? settingsService = null)
     {
         _httpClient = httpClient ?? CreateLoopbackHttpClient();
         _ownsHttpClient = httpClient is null;
+        _settingsService = settingsService ?? new SmartBirdThermostatSettingsService();
     }
 
-    public Task<SmartBirdThermostatSnapshot> LoadAsync(CancellationToken cancellationToken = default)
+    public async Task<SmartBirdThermostatSnapshot> LoadAsync(CancellationToken cancellationToken = default)
     {
-        // The source task binds this product to one fixed loopback dashboard. Runner settings
-        // cannot redirect an embedded privileged control surface to another local process.
-        return ProbeAsync(DefaultBaseUri, cancellationToken);
+        var baseUri = await ResolveDashboardUriAsync(cancellationToken).ConfigureAwait(false);
+        return await ProbeAsync(baseUri, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<SmartBirdThermostatSnapshot> StartScheduledServiceAsync(
         CancellationToken cancellationToken = default)
     {
+        var baseUri = await ResolveDashboardUriAsync(cancellationToken).ConfigureAwait(false);
         if (!OperatingSystem.IsWindows())
         {
             return SmartBirdThermostatSnapshot.Offline(
-                DefaultBaseUri,
+                baseUri,
                 "当前系统无法启动 SmartBird 后台任务。",
                 "请启动 SmartBird 服务后重试。");
         }
@@ -44,7 +48,7 @@ public sealed class SmartBirdThermostatToolService : IDisposable
         if (!File.Exists(schtasksPath))
         {
             return SmartBirdThermostatSnapshot.Offline(
-                DefaultBaseUri,
+                baseUri,
                 "找不到 Windows 任务计划程序。",
                 "请在系统中启动 SmartBirdThermostat 任务。");
         }
@@ -65,7 +69,7 @@ public sealed class SmartBirdThermostatToolService : IDisposable
         if (process is null)
         {
             return SmartBirdThermostatSnapshot.Offline(
-                DefaultBaseUri,
+                baseUri,
                 "后台任务启动失败。",
                 $"请检查任务计划程序中的 {ScheduledTaskName}。");
         }
@@ -79,7 +83,7 @@ public sealed class SmartBirdThermostatToolService : IDisposable
         {
             var detail = FirstUsefulLine(standardError, standardOutput);
             return SmartBirdThermostatSnapshot.Offline(
-                DefaultBaseUri,
+                baseUri,
                 "后台任务启动失败。",
                 string.IsNullOrWhiteSpace(detail)
                     ? $"请检查任务计划程序中的 {ScheduledTaskName}。"
@@ -98,7 +102,7 @@ public sealed class SmartBirdThermostatToolService : IDisposable
         }
 
         return (lastSnapshot ?? SmartBirdThermostatSnapshot.Offline(
-            DefaultBaseUri,
+            baseUri,
             "后台任务已启动，服务仍在初始化。",
             "请稍后刷新页面。")) with
         {
@@ -107,7 +111,14 @@ public sealed class SmartBirdThermostatToolService : IDisposable
         };
     }
 
-    public static Uri NormalizeBaseUri(Uri _) => DefaultBaseUri;
+    public static Uri NormalizeBaseUri(Uri candidate)
+    {
+        if (!IsSupportedDashboardOrigin(candidate))
+        {
+            return DefaultBaseUri;
+        }
+        return new UriBuilder(Uri.UriSchemeHttp, "127.0.0.1", candidate.Port, "/").Uri;
+    }
 
     public static bool IsDashboardOrigin(Uri? uri)
     {
@@ -116,6 +127,22 @@ public sealed class SmartBirdThermostatToolService : IDisposable
                string.Equals(uri.Host, "127.0.0.1", StringComparison.Ordinal) &&
                uri.Port == 19002 &&
                string.IsNullOrEmpty(uri.UserInfo);
+    }
+
+    public static bool IsSupportedDashboardOrigin(Uri? uri)
+    {
+        return uri is { IsAbsoluteUri: true } &&
+               string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(uri.Host, "127.0.0.1", StringComparison.Ordinal) &&
+               uri.Port is >= 1 and <= 65535 &&
+               string.IsNullOrEmpty(uri.UserInfo);
+    }
+
+    public static bool HasSameDashboardOrigin(Uri allowed, Uri target)
+    {
+        return IsSupportedDashboardOrigin(allowed) &&
+               IsSupportedDashboardOrigin(target) &&
+               allowed.Port == target.Port;
     }
 
     public void Dispose()
@@ -140,12 +167,13 @@ public sealed class SmartBirdThermostatToolService : IDisposable
                 statusUri,
                 HttpCompletionOption.ResponseHeadersRead,
                 timeout.Token).ConfigureAwait(false);
-            if (response.RequestMessage?.RequestUri is { } finalUri && !IsDashboardOrigin(finalUri))
+            if (response.RequestMessage?.RequestUri is { } finalUri &&
+                !HasSameDashboardOrigin(baseUri, finalUri))
             {
                 return SmartBirdThermostatSnapshot.Offline(
                     baseUri,
                     "SmartBird 拒绝了跨源状态响应。",
-                    "状态探活仅允许访问本机 127.0.0.1:19002。",
+                    $"状态探活仅允许访问已配置的本机端点 {baseUri.Host}:{baseUri.Port}。",
                     "cross-origin-response");
             }
             if (!response.IsSuccessStatusCode)
@@ -195,6 +223,25 @@ public sealed class SmartBirdThermostatToolService : IDisposable
                 "状态接口没有返回有效 JSON。",
                 "invalid-json");
         }
+    }
+
+    private async Task<Uri> ResolveDashboardUriAsync(CancellationToken cancellationToken)
+    {
+        var state = await _settingsService.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var host = state.Settings.ServiceHost == "0.0.0.0"
+            ? "127.0.0.1"
+            : state.Settings.ServiceHost;
+        var candidate = new UriBuilder(
+            Uri.UriSchemeHttp,
+            host,
+            state.Settings.ServicePort,
+            "/").Uri;
+        if (!IsSupportedDashboardOrigin(candidate))
+        {
+            throw new InvalidOperationException(
+                "SmartBird 控制台端点必须使用本机 127.0.0.1 和有效端口。");
+        }
+        return candidate;
     }
 
     private static SmartBirdThermostatSnapshot ParseOnlineSnapshot(Uri baseUri, JsonObject status)

@@ -5,9 +5,10 @@ namespace MyPowerTools.WebToolHost;
 internal sealed class SmartBirdHostWindow : Form
 {
     public const string FixedDashboardUrl = "http://127.0.0.1:19002/";
-    private static readonly Uri FixedOrigin = new(FixedDashboardUrl);
 
     private readonly nint _parent;
+    private readonly Uri _dashboardUri;
+    private readonly Uri _origin;
     private CoreWebView2Environment? _environment;
     private CoreWebView2Controller? _controller;
     private CoreWebView2? _webView;
@@ -15,9 +16,15 @@ internal sealed class SmartBirdHostWindow : Form
     private bool _controllerReady;
     private bool _shellAllowsVisibility;
 
-    private SmartBirdHostWindow(nint parent)
+    private SmartBirdHostWindow(nint parent, Uri dashboardUri)
     {
         _parent = parent;
+        _dashboardUri = dashboardUri;
+        _origin = new UriBuilder(
+            dashboardUri.Scheme,
+            dashboardUri.Host,
+            dashboardUri.Port,
+            "/").Uri;
         AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = Color.White;
         FormBorderStyle = FormBorderStyle.None;
@@ -47,7 +54,10 @@ internal sealed class SmartBirdHostWindow : Form
         base.SetVisibleCore(value && _shellAllowsVisibility);
     }
 
-    public static SmartBirdHostWindow Create(nint parent, uint expectedParentProcessId)
+    public static SmartBirdHostWindow Create(
+        nint parent,
+        uint expectedParentProcessId,
+        Uri dashboardUri)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -57,6 +67,10 @@ internal sealed class SmartBirdHostWindow : Form
         {
             throw new InvalidOperationException("The Shell parent window is unavailable.");
         }
+        if (!IsSupportedDashboardUri(dashboardUri))
+        {
+            throw new InvalidOperationException("The SmartBird dashboard URL is outside the local HTTP policy.");
+        }
 
         _ = Win32Native.GetWindowThreadProcessId(parent, out var actualParentProcessId);
         if (actualParentProcessId != expectedParentProcessId ||
@@ -65,7 +79,7 @@ internal sealed class SmartBirdHostWindow : Form
             throw new InvalidOperationException("The Shell parent window identity did not match the launch contract.");
         }
 
-        var result = new SmartBirdHostWindow(parent);
+        var result = new SmartBirdHostWindow(parent, dashboardUri);
         _ = result.Handle;
         if (Win32Native.GetParent(result.Handle) != parent)
         {
@@ -136,7 +150,7 @@ internal sealed class SmartBirdHostWindow : Form
             UpdateControllerBounds();
             _controllerReady = true;
             WebToolHostProtocol.WriteState("loading", phase: "controller-ready");
-            webView.Navigate(FixedDashboardUrl);
+            webView.Navigate(_dashboardUri.AbsoluteUri);
         }
         catch (WebView2RuntimeNotFoundException)
         {
@@ -230,13 +244,21 @@ internal sealed class SmartBirdHostWindow : Form
         Application.ExitThread();
     }
 
-    private static bool HasSameOrigin(Uri target)
+    public static bool IsSupportedDashboardUri(Uri? target)
     {
-        return target.IsAbsoluteUri &&
+        return target is { IsAbsoluteUri: true } &&
                string.Equals(target.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-               string.Equals(target.Host, FixedOrigin.Host, StringComparison.Ordinal) &&
-               target.Port == FixedOrigin.Port &&
+               string.Equals(target.Host, "127.0.0.1", StringComparison.Ordinal) &&
+               target.Port is >= 1 and <= 65535 &&
                string.IsNullOrEmpty(target.UserInfo);
+    }
+
+    private bool HasSameOrigin(Uri target)
+    {
+        return IsSupportedDashboardUri(target) &&
+               string.Equals(target.Scheme, _origin.Scheme, StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(target.Host, _origin.Host, StringComparison.Ordinal) &&
+               target.Port == _origin.Port;
     }
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs args)

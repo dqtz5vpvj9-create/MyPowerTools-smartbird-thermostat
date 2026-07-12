@@ -90,6 +90,7 @@ def task_args(settings: dict, data_root: Path, log_file: Path) -> list[str]:
         "--min-on-sec", str(setting(settings, "minOnSec", 60)),
         "--min-off-sec", str(setting(settings, "minOffSec", 60)),
         "--margin-c", str(setting(settings, "marginC", 5)),
+        "--guard-c", str(setting(settings, "condensationGuardC", 3)),
         "--min-surface-c", str(setting(settings, "minSurfaceC", 30)),
         "--on-surface-c", str(setting(settings, "onSurfaceC", 35)),
         "--hysteresis-c", str(setting(settings, "hysteresisC", 4)),

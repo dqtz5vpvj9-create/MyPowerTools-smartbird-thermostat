@@ -32,6 +32,19 @@ def load_settings(path: Path) -> dict:
 
 def build_server_args(settings: dict) -> list[str]:
     endpoint = urlparse(str(settings.get("energyServerUrl") or "http://127.0.0.1:18988"))
+    if (
+        endpoint.scheme != "http"
+        or endpoint.hostname != "127.0.0.1"
+        or endpoint.username is not None
+        or endpoint.password is not None
+        or endpoint.path not in ("", "/")
+        or endpoint.params
+        or endpoint.query
+        or endpoint.fragment
+    ):
+        raise ValueError(
+            "Managed Energy Server URL must use http://127.0.0.1:<port>/"
+        )
     port = endpoint.port or (443 if endpoint.scheme == "https" else 80)
     backend = str(settings.get("energyBackend") or "hid")
     selector_mode = str(settings.get("usbMeterSelectorMode") or "auto")

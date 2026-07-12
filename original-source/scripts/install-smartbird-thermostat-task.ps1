@@ -19,6 +19,7 @@ param(
     [double]$MinOnSec = 60.0,
     [double]$MinOffSec = 60.0,
     [double]$MarginC = 5.0,
+    [double]$CondensationGuardC = 3.0,
     [double]$MinSurfaceC = 30.0,
     [double]$OnSurfaceC = 35.0,
     [double]$HysteresisC = 4.0,
@@ -149,6 +150,7 @@ switch ($Mode) {
                 minOnSec = $MinOnSec
                 minOffSec = $MinOffSec
                 marginC = $MarginC
+                condensationGuardC = $CondensationGuardC
                 minSurfaceC = $MinSurfaceC
                 onSurfaceC = $OnSurfaceC
                 hysteresisC = $HysteresisC

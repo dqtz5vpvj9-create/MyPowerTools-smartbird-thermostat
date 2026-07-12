@@ -252,6 +252,7 @@
                 <StackPanel Grid.Row="1" Margin="0,8,0,0" Spacing="5"><TextBlock Classes="MptMeta" Text="最低表面温度" /><TextBox Text="{Binding MinSurfaceC}" /></StackPanel>
                 <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Spacing="5"><TextBlock Classes="MptMeta" Text="开启表面温度" /><TextBox Text="{Binding OnSurfaceC}" /></StackPanel>
                 <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,8,0,0" Spacing="5"><TextBlock Classes="MptMeta" Text="温控滞回（°C）" /><TextBox Text="{Binding HysteresisC}" /></StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,8,0,0" Spacing="5"><TextBlock Classes="MptMeta" Text="冷凝保护差值（°C）" /><TextBox Text="{Binding CondensationGuardC}" /></StackPanel>
               </Grid>
             </StackPanel>
           </Border>
@@ -290,6 +291,9 @@
                   <TextBlock Classes="MptSectionTitle" Text="Energy Server 与 USB Meter" />
                   <CheckBox IsChecked="{Binding EnergyServerEnabled}"
                             Content="随 SmartBird 注册并启动 Energy Server" />
+                  <TextBlock Classes="MptMeta"
+                             Text="启用本机任务时，URL 必须使用 http://127.0.0.1:&lt;port&gt;/。关闭本机任务后可填写完整的远程 HTTP/HTTPS URL。"
+                             TextWrapping="Wrap" />
                 </StackPanel>
                 <controls:MptButton Grid.Column="1" Command="{Binding StartEnergyServerCommand}" Content="启动" />
                 <controls:MptButton Grid.Column="2" Command="{Binding StopEnergyServerCommand}" Content="停止" />

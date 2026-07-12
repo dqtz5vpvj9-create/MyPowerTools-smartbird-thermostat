@@ -18,6 +18,7 @@ public sealed record SmartBirdThermostatSettings
     public double MinOnSec { get; init; } = 60;
     public double MinOffSec { get; init; } = 60;
     public double MarginC { get; init; } = 5;
+    public double CondensationGuardC { get; init; } = 3;
     public double MinSurfaceC { get; init; } = 30;
     public double OnSurfaceC { get; init; } = 35;
     public double HysteresisC { get; init; } = 4;
@@ -209,8 +210,12 @@ public sealed class SmartBirdThermostatSettingsService
         return string.Join(" · ", results);
     }
 
-    public Task<string> StartEnergyServerAsync(CancellationToken cancellationToken = default) =>
-        ChangeEnergyTaskStateAsync("Start", cancellationToken);
+    public async Task<string> StartEnergyServerAsync(CancellationToken cancellationToken = default)
+    {
+        var state = await LoadAsync(cancellationToken).ConfigureAwait(false);
+        Validate(state.Settings with { EnergyServerEnabled = true });
+        return await ChangeEnergyTaskStateAsync("Start", cancellationToken).ConfigureAwait(false);
+    }
 
     public Task<string> StopEnergyServerAsync(CancellationToken cancellationToken = default) =>
         ChangeEnergyTaskStateAsync("Stop", cancellationToken);
@@ -306,8 +311,14 @@ public sealed class SmartBirdThermostatSettingsService
         {
             throw new InvalidOperationException("服务地址和 SmartBird TCP 地址不能为空。");
         }
+        if (settings.ServiceHost is not ("127.0.0.1" or "0.0.0.0"))
+        {
+            throw new InvalidOperationException(
+                "控制台监听地址只允许 127.0.0.1 或 0.0.0.0；嵌入控制台始终通过本机回环地址连接。");
+        }
         if (settings.LoopSec <= 0 || settings.MinOnSec < 0 || settings.MinOffSec < 0 ||
-            settings.HysteresisC < 0 || settings.DefaultRh is < 0 or > 100)
+            settings.CondensationGuardC < 0 || settings.HysteresisC < 0 ||
+            settings.DefaultRh is < 0 or > 100)
         {
             throw new InvalidOperationException("温控周期、最短运行时间、滞回和湿度参数无效。");
         }
@@ -315,6 +326,17 @@ public sealed class SmartBirdThermostatSettingsService
             energyUri.Scheme is not ("http" or "https"))
         {
             throw new InvalidOperationException("Energy Server URL 必须是有效的 HTTP 或 HTTPS 地址。");
+        }
+        if (settings.EnergyServerEnabled &&
+            (energyUri.Scheme != Uri.UriSchemeHttp ||
+             !string.Equals(energyUri.Host, "127.0.0.1", StringComparison.Ordinal) ||
+             !string.IsNullOrEmpty(energyUri.UserInfo) ||
+             !string.IsNullOrEmpty(energyUri.Query) ||
+             !string.IsNullOrEmpty(energyUri.Fragment) ||
+             energyUri.AbsolutePath != "/"))
+        {
+            throw new InvalidOperationException(
+                "启用本机 Energy Server 任务时，URL 必须是 http://127.0.0.1:<port>/ 形式。");
         }
         if (settings.EnergyBackend is not ("hid" or "uia"))
         {

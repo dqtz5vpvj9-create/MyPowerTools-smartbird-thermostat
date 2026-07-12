@@ -21,7 +21,11 @@ internal static class Program
         {
             return IsolationProbe.Run(crashHost: false);
         }
-        if (!TryReadLaunchOptions(arguments, out var parentWindow, out var parentProcessId))
+        if (!TryReadLaunchOptions(
+                arguments,
+                out var parentWindow,
+                out var parentProcessId,
+                out var dashboardUri))
         {
             return 2;
         }
@@ -31,7 +35,7 @@ internal static class Program
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            using var host = SmartBirdHostWindow.Create(parentWindow, parentProcessId);
+            using var host = SmartBirdHostWindow.Create(parentWindow, parentProcessId, dashboardUri);
             WebToolHostProtocol.WriteState("loading", phase: "attached");
             _ = Task.Run(() => RunCommandLoopAsync(host));
             _ = Task.Run(() => MonitorParentAsync(parentProcessId));
@@ -133,11 +137,15 @@ internal static class Program
     private static bool TryReadLaunchOptions(
         IReadOnlyList<string> arguments,
         out nint parentWindow,
-        out uint parentProcessId)
+        out uint parentProcessId,
+        out Uri dashboardUri)
     {
         parentWindow = 0;
         parentProcessId = 0;
+        dashboardUri = new Uri(SmartBirdHostWindow.FixedDashboardUrl);
         var tool = "";
+        var sourceProvided = false;
+        var sourceValid = false;
         for (var index = 0; index < arguments.Count; index++)
         {
             if (string.Equals(arguments[index], "--parent-hwnd", StringComparison.OrdinalIgnoreCase) &&
@@ -157,10 +165,24 @@ internal static class Program
             {
                 tool = arguments[++index];
             }
+            else if (string.Equals(arguments[index], "--source", StringComparison.OrdinalIgnoreCase) &&
+                     index + 1 < arguments.Count)
+            {
+                sourceProvided = true;
+                sourceValid = Uri.TryCreate(arguments[++index], UriKind.Absolute, out var source) &&
+                              SmartBirdHostWindow.IsSupportedDashboardUri(source);
+                if (sourceValid)
+                {
+                    dashboardUri = source!;
+                }
+            }
         }
         return parentWindow != 0 &&
                parentProcessId != 0 &&
-               string.Equals(tool, "smartbird", StringComparison.OrdinalIgnoreCase);
+               string.Equals(tool, "smartbird", StringComparison.OrdinalIgnoreCase) &&
+               sourceProvided &&
+               sourceValid &&
+               SmartBirdHostWindow.IsSupportedDashboardUri(dashboardUri);
     }
 }
 

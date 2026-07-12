@@ -171,9 +171,10 @@ public sealed partial class SmartBirdThermostatViewModel : ToolProductPageViewMo
 
     public Task OpenExternalAsync(Uri uri)
     {
-        if (!SmartBirdThermostatToolService.IsDashboardOrigin(uri))
+        if (!SmartBirdThermostatToolService.HasSameDashboardOrigin(DashboardUri, uri))
         {
-            throw new InvalidOperationException("SmartBird 控制台只能打开本机 127.0.0.1:19002。");
+            throw new InvalidOperationException(
+                $"SmartBird 控制台只能打开已保存的本机端点 {DashboardUri.Host}:{DashboardUri.Port}。");
         }
         return _openExternal(uri);
     }
