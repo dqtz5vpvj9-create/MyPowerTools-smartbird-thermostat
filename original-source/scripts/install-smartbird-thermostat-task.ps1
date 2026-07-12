@@ -6,6 +6,7 @@ param(
     [string]$TaskName = "SmartBirdThermostat",
     [string]$RepoRoot = "",
     [string]$PythonPath = "",
+    [string]$DataRoot = "",
 
     [string]$ServiceHost = "127.0.0.1",
     [int]$ServicePort = 19002,
@@ -94,9 +95,19 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = Join-Path $ScriptDir ".."
 }
 $RepoRoot = (Resolve-Path $RepoRoot).Path
+$DataRoot = [Environment]::ExpandEnvironmentVariables($DataRoot)
+if ([string]::IsNullOrWhiteSpace($DataRoot)) {
+    $LocalAppData = [Environment]::GetFolderPath("LocalApplicationData")
+    if ([string]::IsNullOrWhiteSpace($LocalAppData)) {
+        throw "LocalApplicationData is unavailable for the current user. Pass -DataRoot explicitly."
+    }
+    $DataRoot = Join-Path $LocalAppData "MyPowerTools\SmartBird"
+}
+$DataRoot = [System.IO.Path]::GetFullPath($DataRoot)
 $ServiceScript = Join-Path $RepoRoot "test_tools\smartbird_thermostat_service.py"
-$LogDir = Join-Path $RepoRoot "logs"
+$LogDir = Join-Path $DataRoot "logs"
 $LogFile = Join-Path $LogDir "smartbird_thermostat_service.log"
+$PersistenceDir = Join-Path $DataRoot "data"
 $ConhostPath = Join-Path $env:WINDIR "System32\conhost.exe"
 
 function Stop-SmartBirdTaskProcesses {
@@ -143,7 +154,8 @@ switch ($Mode) {
             "--default-ambient-c", "$DefaultAmbientC",
             "--default-rh", "$DefaultRh",
             "--amap-city", (Quote-NativeArg $AmapCity),
-            "--log-file", (Quote-NativeArg $LogFile)
+            "--log-file", (Quote-NativeArg $LogFile),
+            "--data-dir", (Quote-NativeArg $PersistenceDir)
         )
         $actionArgs = "--headless " + ($serviceArgs -join " ")
 
