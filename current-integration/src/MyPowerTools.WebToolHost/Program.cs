@@ -128,6 +128,9 @@ internal static class Program
             case "focus":
                 host.FocusWebView(command.Direction);
                 break;
+            case "bridge-response":
+                host.PostBridgeResponse(command.Payload);
+                break;
             case "shutdown":
                 host.RequestClose();
                 break;
@@ -179,7 +182,7 @@ internal static class Program
         }
         return parentWindow != 0 &&
                parentProcessId != 0 &&
-               string.Equals(tool, "smartbird", StringComparison.OrdinalIgnoreCase) &&
+               !string.IsNullOrWhiteSpace(tool) &&
                sourceProvided &&
                sourceValid &&
                SmartBirdHostWindow.IsSupportedDashboardUri(dashboardUri);

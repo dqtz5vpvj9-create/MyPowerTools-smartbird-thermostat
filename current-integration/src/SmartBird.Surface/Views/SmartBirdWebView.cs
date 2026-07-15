@@ -11,7 +11,7 @@ using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-namespace MyPowerTools.Shell.Avalonia.Views;
+namespace SmartBird.Surface.Views;
 
 public enum SmartBirdWebViewState
 {
@@ -377,10 +377,8 @@ public sealed class SmartBirdWebView : Control
         }
         if (hostEvent.Kind == HostProcessEventKind.Shortcut)
         {
-            if (_topLevel is MainWindow window)
-            {
-                _ = window.HandleForwardedWebToolShortcutAsync(hostEvent.Value);
-            }
+            // Web tool keyboard shortcuts in surface context are handled via the surface context's
+            // NavigateAsync bridge; the Shell's MainWindow extension is not available here.
             return;
         }
         if (hostEvent.Kind == HostProcessEventKind.FocusMove)

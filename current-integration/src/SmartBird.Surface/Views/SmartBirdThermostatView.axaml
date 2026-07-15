@@ -1,0 +1,342 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:SmartBird.Surface.Views"
+             xmlns:controls="using:MyPowerTools.UI.Controls"
+             xmlns:vm="using:SmartBird.Surface.ViewModels"
+             x:Class="SmartBird.Surface.Views.SmartBirdThermostatView"
+             x:DataType="vm:SmartBirdThermostatViewModel"
+             MinHeight="560">
+  <UserControl.Styles>
+    <Style Selector="Border.SmartBirdOnlineBadge">
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderBrush" Value="{DynamicResource MptBrushSuccess}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.SmartBirdOfflineBadge">
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderBrush" Value="{DynamicResource MptBrushWarning}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="TextBlock.SmartBirdStatusText">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*"
+        RowSpacing="10">
+    <Grid ColumnDefinitions="*,Auto"
+          ColumnSpacing="20">
+      <Grid ColumnDefinitions="Auto,Auto,*"
+            ColumnSpacing="12"
+            VerticalAlignment="Center">
+        <TextBlock Classes="MptPageTitle"
+                   Text="SmartBird 温度管理器"
+                   ToolTip.Tip="露点保护、散热器控制与能耗会话" />
+        <Grid Grid.Column="1"
+              VerticalAlignment="Center">
+          <Border Classes="SmartBirdOnlineBadge"
+                  IsVisible="{Binding IsServiceOnline}"
+                  VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="{DynamicResource MptSpacingS}">
+              <Ellipse Width="7"
+                       Height="7"
+                       Fill="{DynamicResource MptBrushSuccess}" />
+              <TextBlock Classes="SmartBirdStatusText"
+                         Foreground="{DynamicResource MptBrushSuccess}"
+                         Text="{Binding ConnectionLabel}" />
+            </StackPanel>
+          </Border>
+          <Border Classes="SmartBirdOfflineBadge"
+                  IsVisible="{Binding IsServiceOffline}"
+                  VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="{DynamicResource MptSpacingS}">
+              <Ellipse Width="7"
+                       Height="7"
+                       Fill="{DynamicResource MptBrushWarning}" />
+              <TextBlock Classes="SmartBirdStatusText"
+                         Foreground="{DynamicResource MptBrushWarning}"
+                         Text="{Binding ConnectionLabel}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+        <StackPanel Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="{DynamicResource MptSpacingM}"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding IsServiceOnline}">
+          <TextBlock Classes="MptMeta" Text="{Binding ModeLabel}" />
+          <TextBlock Classes="MptMeta" Text="·" />
+          <TextBlock Classes="MptMeta" Text="{Binding CoolingLabel}" />
+          <TextBlock Classes="MptMeta" Text="·" />
+          <TextBlock Classes="MptMeta" Text="{Binding SurfaceLabel}" />
+          <TextBlock Classes="MptMeta" Text="·" />
+          <TextBlock Classes="MptMeta" Text="{Binding DeviceLabel}" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Grid.Column="1"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource MptSpacingS}"
+                  VerticalAlignment="Center">
+        <controls:MptButton Command="{Binding ShowConsoleCommand}"
+                            Content="控制台" />
+        <controls:MptButton Command="{Binding ShowSettingsCommand}"
+                            Content="环境设置" />
+        <controls:MptButton Command="{Binding RefreshCommand}"
+                            Content="刷新"
+                            IsVisible="{Binding IsConsoleVisible}" />
+        <controls:MptButton Classes="MptPrimaryButton"
+                            Command="{Binding OpenInBrowserCommand}"
+                            Content="在浏览器中打开"
+                            IsVisible="{Binding IsConsoleVisible}" />
+      </StackPanel>
+    </Grid>
+
+    <Border Grid.Row="1"
+            Classes="MptCard"
+            IsVisible="{Binding IsConsoleVisible}"
+            ClipToBounds="True"
+            MinHeight="470">
+      <Grid Background="{DynamicResource MptBrushSurfaceInset}">
+        <local:SmartBirdWebView x:Name="EmbeddedBrowser"
+                                Source="{Binding DashboardUri}"
+                                IsVisible="{Binding IsWebViewHostVisible}"
+                                Focusable="True"
+                                TabIndex="0"
+                                AutomationProperties.Name="SmartBird 温度管理器网页控制台"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch" />
+
+        <Grid IsVisible="{Binding IsFallbackVisible}"
+              Margin="{DynamicResource MptPagePadding}">
+          <Border Classes="MptCard"
+                  Width="620"
+                  MaxWidth="620"
+                  Padding="{DynamicResource MptOverlayPanelPadding}"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                  RowSpacing="18">
+              <Border Width="56"
+                      Height="56"
+                      CornerRadius="12"
+                      Background="{DynamicResource MptBrushSurfaceInset}"
+                      HorizontalAlignment="Left">
+                <TextBlock Text="SB"
+                           FontSize="{DynamicResource MptFontSizeSection}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource MptBrushAccent}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+              </Border>
+
+              <StackPanel Grid.Row="1"
+                          Spacing="{DynamicResource MptSpacingS}">
+                <TextBlock Classes="MptSectionTitle"
+                           Text="{Binding FallbackTitle}"
+                           TextWrapping="Wrap" />
+                <TextBlock Classes="MptPageSubtitle"
+                           Text="{Binding FallbackDetail}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+
+              <Border Grid.Row="2"
+                      Classes="MptInset">
+                <StackPanel Spacing="{DynamicResource MptSpacingXs}">
+                  <TextBlock Classes="MptMeta"
+                             Text="本机控制台" />
+                  <TextBlock Classes="MptMono"
+                             Text="{Binding FallbackActionHint}"
+                             FontFamily="{DynamicResource MptFontFamilyMono}"
+                             Foreground="{DynamicResource MptBrushTextSecondary}"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+
+              <StackPanel Grid.Row="3"
+                          Orientation="Horizontal"
+                          Spacing="{DynamicResource MptSpacingS}">
+                <controls:MptButton Classes="MptPrimaryButton"
+                                    Command="{Binding StartServiceCommand}"
+                                    Content="启动后台服务"
+                                    IsVisible="{Binding ShowStartServiceAction}" />
+                <controls:MptButton Command="{Binding RefreshCommand}"
+                                    Content="重试" />
+                <controls:MptButton Command="{Binding OpenInBrowserCommand}"
+                                    Content="在浏览器中打开" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1"
+            Classes="MptCard"
+            IsVisible="{Binding IsSettingsVisible}"
+            ClipToBounds="True"
+            MinHeight="470">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24"
+                    Spacing="16">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto"
+                ColumnSpacing="8">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="MptSectionTitle" Text="SmartBird 环境设置" />
+              <TextBlock Classes="MptMeta"
+                         Text="{Binding SettingsStatus}"
+                         TextWrapping="Wrap" />
+              <TextBlock Classes="MptMono"
+                         Text="{Binding SettingsPath}"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+            <controls:MptButton Grid.Column="1"
+                                Command="{Binding TestConnectionsCommand}"
+                                Content="测试环境" />
+            <controls:MptButton Grid.Column="2"
+                                Command="{Binding StopEnergyServerCommand}"
+                                Content="停止 Energy Server" />
+            <controls:MptButton Grid.Column="3"
+                                Classes="MptPrimaryButton"
+                                Command="{Binding SaveSettingsCommand}"
+                                Content="保存并重启服务" />
+          </Grid>
+
+          <Border Classes="MptInset" Padding="18">
+            <StackPanel Spacing="12">
+              <TextBlock Classes="MptSectionTitle" Text="服务与设备" />
+              <Grid ColumnDefinitions="*,*,*,*"
+                    ColumnSpacing="12"
+                    RowDefinitions="Auto,Auto">
+                <StackPanel Spacing="5">
+                  <TextBlock Classes="MptMeta" Text="控制台监听地址" />
+                  <TextBox Text="{Binding ServiceHost}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5">
+                  <TextBlock Classes="MptMeta" Text="控制台端口" />
+                  <TextBox Text="{Binding ServicePort}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="5">
+                  <TextBlock Classes="MptMeta" Text="SmartBird TCP 地址" />
+                  <TextBox Text="{Binding SmartBirdHost}" />
+                </StackPanel>
+                <StackPanel Grid.Column="3" Spacing="5">
+                  <TextBlock Classes="MptMeta" Text="SmartBird TCP 端口" />
+                  <TextBox Text="{Binding SmartBirdPort}" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Margin="0,8,0,0" Spacing="5">
+                  <TextBlock Classes="MptMeta" Text="ADB serial 列表（逗号分隔）" />
+                  <TextBox Text="{Binding AdbSerials}"
+                           PlaceholderText="10.33.0.243:5555,192.168.29.79:35559" />
+                </StackPanel>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="MptInset" Padding="18">
+            <StackPanel Spacing="12">
+              <TextBlock Classes="MptSectionTitle" Text="温控策略" />
+              <Grid ColumnDefinitions="*,*,*,*"
+                    ColumnSpacing="12"
+                    RowDefinitions="Auto,Auto">
+                <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="循环周期（秒）" /><TextBox Text="{Binding LoopSec}" /></StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="最短开启（秒）" /><TextBox Text="{Binding MinOnSec}" /></StackPanel>
+                <StackPanel Grid.Column="2" Spacing="5"><TextBlock Classes="MptMeta" Text="最短关闭（秒）" /><TextBox Text="{Binding MinOffSec}" /></StackPanel>
+                <StackPanel Grid.Column="3" Spacing="5"><TextBlock Classes="MptMeta" Text="露点余量（°C）" /><TextBox Text="{Binding MarginC}" /></StackPanel>
+                <StackPanel Grid.Row="1" Margin="0,8,0,0" Spacing="5"><TextBlock Classes="MptMeta" Text="最低表面温度" /><TextBox Text="{Binding MinSurfaceC}" /></StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Spacing="5"><TextBlock Classes="MptMeta" Text="开启表面温度" /><TextBox Text="{Binding OnSurfaceC}" /></StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,8,0,0" Spacing="5"><TextBlock Classes="MptMeta" Text="温控滞回（°C）" /><TextBox Text="{Binding HysteresisC}" /></StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,8,0,0" Spacing="5"><TextBlock Classes="MptMeta" Text="冷凝保护差值（°C）" /><TextBox Text="{Binding CondensationGuardC}" /></StackPanel>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="MptInset" Padding="18">
+            <StackPanel Spacing="12">
+              <TextBlock Classes="MptSectionTitle" Text="天气与备用环境" />
+              <Grid ColumnDefinitions="*,*,*,*,*"
+                    ColumnSpacing="12">
+                <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="备用温度（°C）" /><TextBox Text="{Binding DefaultAmbientC}" /></StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="备用湿度（%）" /><TextBox Text="{Binding DefaultRh}" /></StackPanel>
+                <StackPanel Grid.Column="2" Spacing="5"><TextBlock Classes="MptMeta" Text="高德城市代码" /><TextBox Text="{Binding AmapCity}" /></StackPanel>
+                <StackPanel Grid.Column="3" Spacing="5"><TextBlock Classes="MptMeta" Text="请求超时（秒）" /><TextBox Text="{Binding AmapTimeoutSec}" /></StackPanel>
+                <StackPanel Grid.Column="4" Spacing="5"><TextBlock Classes="MptMeta" Text="刷新周期（秒）" /><TextBox Text="{Binding WeatherRefreshSec}" /></StackPanel>
+              </Grid>
+              <Grid ColumnDefinitions="*,Auto"
+                    ColumnSpacing="12">
+                <StackPanel Spacing="5">
+                  <TextBlock Classes="MptMeta" Text="高德 API Key（保存在 Windows Credential Manager）" />
+                  <TextBox Text="{Binding AmapKeyInput}"
+                           PasswordChar="●"
+                           PlaceholderText="{Binding AmapKeyState}" />
+                </StackPanel>
+                <CheckBox Grid.Column="1"
+                          VerticalAlignment="Bottom"
+                          IsChecked="{Binding RemoveStoredAmapKey}"
+                          Content="删除已保存密钥" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="MptInset" Padding="18">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <StackPanel>
+                  <TextBlock Classes="MptSectionTitle" Text="Energy Server 与 USB Meter" />
+                  <CheckBox IsChecked="{Binding EnergyServerEnabled}"
+                            Content="随 SmartBird 注册并启动 Energy Server" />
+                  <TextBlock Classes="MptMeta"
+                             Text="启用本机任务时，URL 必须使用 http://127.0.0.1:&lt;port&gt;/。关闭本机任务后可填写完整的远程 HTTP/HTTPS URL。"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+                <controls:MptButton Grid.Column="1" Command="{Binding StartEnergyServerCommand}" Content="启动" />
+                <controls:MptButton Grid.Column="2" Command="{Binding StopEnergyServerCommand}" Content="停止" />
+              </Grid>
+              <Grid ColumnDefinitions="2*,*,*,2*"
+                    ColumnSpacing="12">
+                <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="Energy Server URL" /><TextBox Text="{Binding EnergyServerUrl}" /></StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="后端" /><ComboBox ItemsSource="{Binding EnergyBackendOptions}" SelectedItem="{Binding EnergyBackend}" /></StackPanel>
+                <StackPanel Grid.Column="2" Spacing="5"><TextBlock Classes="MptMeta" Text="选择方式" /><ComboBox ItemsSource="{Binding UsbMeterSelectorModeOptions}" SelectedItem="{Binding UsbMeterSelectorMode}" /></StackPanel>
+                <StackPanel Grid.Column="3" Spacing="5"><TextBlock Classes="MptMeta" Text="USB Meter selector（可逗号分隔）" /><TextBox Text="{Binding UsbMeterSelector}" /></StackPanel>
+              </Grid>
+              <CheckBox IsChecked="{Binding EnergyAllowUnsafeControl}"
+                        Content="允许 Energy Server 执行创建、开始、暂停和停止会话操作" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="MptInset" Padding="18">
+            <StackPanel Spacing="12">
+              <TextBlock Classes="MptSectionTitle" Text="邮件通知" />
+              <CheckBox IsChecked="{Binding NotificationsEnabled}" Content="启用异常和恢复邮件" />
+              <Grid ColumnDefinitions="2*,*,2*,2*" ColumnSpacing="12">
+                <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="SMTP 主机" /><TextBox Text="{Binding SmtpHost}" /></StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="端口" /><TextBox Text="{Binding SmtpPort}" /></StackPanel>
+                <StackPanel Grid.Column="2" Spacing="5"><TextBlock Classes="MptMeta" Text="用户名" /><TextBox Text="{Binding SmtpUsername}" /></StackPanel>
+                <StackPanel Grid.Column="3" Spacing="5"><TextBlock Classes="MptMeta" Text="发件人" /><TextBox Text="{Binding SmtpSender}" /></StackPanel>
+              </Grid>
+              <Grid ColumnDefinitions="2*,2*,Auto,Auto" ColumnSpacing="12">
+                <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="收件人（逗号分隔）" /><TextBox Text="{Binding SmtpRecipients}" /></StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="SMTP 密码（Credential Manager）" /><TextBox Text="{Binding SmtpPasswordInput}" PasswordChar="●" PlaceholderText="{Binding SmtpPasswordState}" /></StackPanel>
+                <CheckBox Grid.Column="2" VerticalAlignment="Bottom" IsChecked="{Binding SmtpSsl}" Content="SSL" />
+                <CheckBox Grid.Column="3" VerticalAlignment="Bottom" IsChecked="{Binding SmtpStartTls}" Content="STARTTLS" />
+              </Grid>
+              <Grid ColumnDefinitions="*,*,*,Auto,Auto" ColumnSpacing="12">
+                <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="检查周期（秒）" /><TextBox Text="{Binding NotificationMonitorSec}" /></StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="冷却时间（秒）" /><TextBox Text="{Binding NotificationCooldownSec}" /></StackPanel>
+                <StackPanel Grid.Column="2" Spacing="5"><TextBlock Classes="MptMeta" Text="期望最少设备" /><TextBox Text="{Binding NotificationExpectedMinDevices}" /></StackPanel>
+                <CheckBox Grid.Column="3" VerticalAlignment="Bottom" IsChecked="{Binding NotificationSendRecovery}" Content="发送恢复通知" />
+                <CheckBox Grid.Column="4" VerticalAlignment="Bottom" IsChecked="{Binding RemoveStoredSmtpPassword}" Content="删除已保存密码" />
+              </Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</UserControl>

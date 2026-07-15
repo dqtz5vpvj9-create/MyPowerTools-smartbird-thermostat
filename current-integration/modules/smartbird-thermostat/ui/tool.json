@@ -6,9 +6,10 @@
   "description": "在原始控制台中查看露点保护、散热器状态、温度曲线和能耗会话。",
   "icon": "tool.smartbird-thermostat",
   "category": "设备控制",
+  "type": "dotnet-surface",
   "primaryRouteId": "overview",
   "routes": [
-    { "routeId": "overview", "surfaceId": "smartbird-thermostat.overview", "title": "控制台", "icon": "route.overview" }
+    { "routeId": "overview", "surfaceId": "smartbird-thermostat.overview", "title": "控制台", "icon": "route.overview", "surface": { "kind": "dotnet", "assembly": "surface/SmartBird.Surface.dll", "type": "SmartBird.Surface.SmartBirdSurfaceFactory" } }
   ],
   "homeCard": {
     "summary": "打开 SmartBird 原始仪表盘，管理散热器与露点保护。",

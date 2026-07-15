@@ -37,6 +37,9 @@ internal sealed record HostCommand
 
     [JsonPropertyName("direction")]
     public string Direction { get; init; } = "";
+
+    [JsonPropertyName("payload")]
+    public JsonElement Payload { get; init; }
 }
 
 internal sealed record HostEvent(
@@ -88,6 +91,18 @@ internal static class WebToolHostProtocol
         {
             type = "focusMove",
             direction,
+            pid = Environment.ProcessId,
+            protocolVersion = 1
+        }, JsonOptions);
+    }
+
+    public static void WriteBridgeRequest(string requestJson)
+    {
+        using var document = JsonDocument.Parse(requestJson);
+        WritePayload(new
+        {
+            type = "bridgeRequest",
+            payload = document.RootElement.Clone(),
             pid = Environment.ProcessId,
             protocolVersion = 1
         }, JsonOptions);

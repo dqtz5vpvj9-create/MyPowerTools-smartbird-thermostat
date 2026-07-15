@@ -356,6 +356,10 @@ public sealed class SmartBirdThermostatProductTests
         Assert.Contains("AcceleratorKeyPressed", hostWindow);
         Assert.Contains("MoveFocusRequested", hostWindow);
         Assert.Contains("SetWindowRgn", hostWindow);
+        Assert.Contains("_controller.IsVisible = false;", hostWindow);
+        Assert.Contains("PaintOpaquePlaceholder", hostWindow);
+        Assert.Contains("BeginInvoke(RevealSurfaceIfReady)", hostWindow);
+        Assert.DoesNotContain("_controller.IsVisible = command.Visible", hostWindow);
         Assert.Contains("--parent-hwnd", hostProgram);
         Assert.Contains("--parent-pid", hostProgram);
         Assert.Contains("--source", hostProgram);

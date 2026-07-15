@@ -15,6 +15,8 @@ internal sealed class SmartBirdHostWindow : Form
     private bool _initializing;
     private bool _controllerReady;
     private bool _shellAllowsVisibility;
+    private bool _navigationReady;
+    private bool _surfaceVisible;
 
     private SmartBirdHostWindow(nint parent, Uri dashboardUri)
     {
@@ -125,6 +127,7 @@ internal sealed class SmartBirdHostWindow : Form
             var webView = _controller.CoreWebView2;
             _webView = webView;
             _controller.DefaultBackgroundColor = Color.White;
+            _controller.IsVisible = false;
             _controller.AllowExternalDrop = false;
             webView.Settings.AreDevToolsEnabled = false;
             webView.Settings.AreDefaultContextMenusEnabled = true;
@@ -132,7 +135,7 @@ internal sealed class SmartBirdHostWindow : Form
             webView.Settings.AreDefaultScriptDialogsEnabled = false;
             webView.Settings.AreHostObjectsAllowed = false;
             webView.Settings.IsBuiltInErrorPageEnabled = false;
-            webView.Settings.IsWebMessageEnabled = false;
+            webView.Settings.IsWebMessageEnabled = true;
             webView.Settings.IsGeneralAutofillEnabled = false;
             webView.Settings.IsPasswordAutosaveEnabled = false;
             webView.Settings.IsStatusBarEnabled = false;
@@ -145,6 +148,7 @@ internal sealed class SmartBirdHostWindow : Form
             webView.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
             webView.WebResourceRequested += OnWebResourceRequested;
             webView.ProcessFailed += OnProcessFailed;
+            webView.WebMessageReceived += OnWebMessageReceived;
             _controller.AcceleratorKeyPressed += OnAcceleratorKeyPressed;
             _controller.MoveFocusRequested += OnMoveFocusRequested;
             UpdateControllerBounds();
@@ -187,18 +191,17 @@ internal sealed class SmartBirdHostWindow : Form
         SetBounds(command.X, command.Y, width, height, BoundsSpecified.All);
         ApplyClipRegion(command, width, height);
         UpdateControllerBounds();
-        if (_controller is not null)
-        {
-            _controller.IsVisible = command.Visible;
-        }
         if (command.Visible)
         {
             _shellAllowsVisibility = true;
             base.SetVisibleCore(true);
+            PaintOpaquePlaceholder();
+            RevealSurfaceIfReady();
         }
         else
         {
             _shellAllowsVisibility = false;
+            HideSurface();
             base.SetVisibleCore(false);
         }
     }
@@ -207,11 +210,34 @@ internal sealed class SmartBirdHostWindow : Form
     {
         if (_controllerReady && _webView is not null)
         {
+            _navigationReady = false;
+            HideSurface();
             WebToolHostProtocol.WriteState("loading", phase: "reload");
             _webView.Reload();
             return;
         }
         _ = InitializeAsync();
+    }
+
+    public void PostBridgeResponse(System.Text.Json.JsonElement payload)
+    {
+        if (_webView is not null && payload.ValueKind is not System.Text.Json.JsonValueKind.Undefined)
+        {
+            _webView.PostWebMessageAsJson(payload.GetRawText());
+        }
+    }
+
+    private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs eventArguments)
+    {
+        if (!Uri.TryCreate(eventArguments.Source, UriKind.Absolute, out var source) || !HasSameOrigin(source))
+        {
+            return;
+        }
+        var json = eventArguments.WebMessageAsJson;
+        if (json.Length <= 16 * 1024)
+        {
+            WebToolHostProtocol.WriteBridgeRequest(json);
+        }
     }
 
     public void FocusWebView(string direction)
@@ -247,14 +273,19 @@ internal sealed class SmartBirdHostWindow : Form
     public static bool IsSupportedDashboardUri(Uri? target)
     {
         return target is { IsAbsoluteUri: true } &&
-               string.Equals(target.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-               string.Equals(target.Host, "127.0.0.1", StringComparison.Ordinal) &&
-               target.Port is >= 1 and <= 65535 &&
+               (target.IsFile || target.Scheme is "http" or "https") &&
                string.IsNullOrEmpty(target.UserInfo);
     }
 
     private bool HasSameOrigin(Uri target)
     {
+        if (_dashboardUri.IsFile && target.IsFile)
+        {
+            var root = Path.GetDirectoryName(_dashboardUri.LocalPath)!
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+            return Path.GetFullPath(target.LocalPath).StartsWith(root, StringComparison.OrdinalIgnoreCase);
+        }
         return IsSupportedDashboardUri(target) &&
                string.Equals(target.Scheme, _origin.Scheme, StringComparison.OrdinalIgnoreCase) &&
                string.Equals(target.Host, _origin.Host, StringComparison.Ordinal) &&
@@ -268,6 +299,8 @@ internal sealed class SmartBirdHostWindow : Form
             args.Cancel = true;
             return;
         }
+        _navigationReady = false;
+        HideSurface();
         WebToolHostProtocol.WriteState("loading", phase: "navigation");
     }
 
@@ -285,13 +318,55 @@ internal sealed class SmartBirdHostWindow : Form
     {
         if (args.IsSuccess)
         {
-            WebToolHostProtocol.WriteState("ready", phase: "navigation-complete");
+            _navigationReady = true;
+            WebToolHostProtocol.WriteState("loading", phase: "document-ready");
+            BeginInvoke(RevealSurfaceIfReady);
             return;
         }
+        HideSurface();
         WebToolHostProtocol.WriteState(
             "failed",
             $"控制台导航失败：{args.WebErrorStatus}。可刷新或在浏览器中打开。",
             "navigation-failed");
+    }
+
+    private void RevealSurfaceIfReady()
+    {
+        if (IsDisposed ||
+            !_navigationReady ||
+            !_controllerReady ||
+            !_shellAllowsVisibility ||
+            _controller is null ||
+            _surfaceVisible)
+        {
+            return;
+        }
+
+        PaintOpaquePlaceholder();
+        _controller.IsVisible = true;
+        _surfaceVisible = true;
+        WebToolHostProtocol.WriteState("ready", phase: "surface-visible");
+    }
+
+    private void HideSurface()
+    {
+        if (_controller is not null)
+        {
+            _controller.IsVisible = false;
+        }
+        _surfaceVisible = false;
+        PaintOpaquePlaceholder();
+    }
+
+    private void PaintOpaquePlaceholder()
+    {
+        if (!_shellAllowsVisibility || _surfaceVisible || IsDisposed || !IsHandleCreated)
+        {
+            return;
+        }
+
+        Invalidate(invalidateChildren: true);
+        Update();
     }
 
     private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs args)
@@ -450,6 +525,8 @@ internal sealed class SmartBirdHostWindow : Form
             _controller.MoveFocusRequested -= OnMoveFocusRequested;
         }
         _controllerReady = false;
+        _navigationReady = false;
+        _surfaceVisible = false;
         _webView = null;
         try
         {
