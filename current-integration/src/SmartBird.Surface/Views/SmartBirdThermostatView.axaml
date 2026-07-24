@@ -103,14 +103,13 @@
             ClipToBounds="True"
             MinHeight="470">
       <Grid Background="{DynamicResource MptBrushSurfaceInset}">
-        <local:SmartBirdWebView x:Name="EmbeddedBrowser"
-                                Source="{Binding DashboardUri}"
-                                IsVisible="{Binding IsWebViewHostVisible}"
-                                Focusable="True"
-                                TabIndex="0"
-                                AutomationProperties.Name="SmartBird 温度管理器网页控制台"
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Stretch" />
+        <ContentControl x:Name="EmbeddedBrowserHost"
+                        IsVisible="{Binding IsWebViewHostVisible}"
+                        Focusable="True"
+                        TabIndex="0"
+                        AutomationProperties.Name="SmartBird 温度管理器网页控制台"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch" />
 
         <Grid IsVisible="{Binding IsFallbackVisible}"
               Margin="{DynamicResource MptPagePadding}">

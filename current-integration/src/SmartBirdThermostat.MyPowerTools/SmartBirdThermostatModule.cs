@@ -82,7 +82,7 @@ public sealed class SmartBirdThermostatModule : IMptModule
             Command("smartbird-thermostat.config.save", "Save thermostat config", "Validates and persists SmartBird facade policy settings", parameters: ConfigSaveParameters()),
             Command("smartbird-thermostat.hardware.diagnostics", "Check thermostat hardware dependencies", "Checks source-backed Energy Server and ADB dependency readiness", parameters: facadeParameters),
             Command("smartbird-thermostat.self-test", "Run thermostat facade self-test", "Verifies paths, settings schema, endpoints, and redaction"),
-            Command("smartbird-thermostat.service.restart", "Request thermostat service restart", "Builds an audited scheduled-task restart request", requiresElevation: true, dangerLevel: "medium", parameters: RestartParameters())
+            Command("smartbird-thermostat.service.restart", "Restart thermostat service", "Restarts the current-user SmartBird scheduled task", dangerLevel: "medium", parameters: RestartParameters())
         ];
         return ValueTask.FromResult(commands);
     }
@@ -98,7 +98,7 @@ public sealed class SmartBirdThermostatModule : IMptModule
             "smartbird-thermostat.config.save" => ConfigSave(request),
             "smartbird-thermostat.hardware.diagnostics" => await HardwareDiagnosticsAsync(request, cancellationToken),
             "smartbird-thermostat.self-test" => SelfTest(request),
-            "smartbird-thermostat.service.restart" => RestartRequest(request),
+            "smartbird-thermostat.service.restart" => await RestartScheduledTaskAsync(request, cancellationToken),
             _ => Failed(request, MptErrorCodes.NotFound, $"Command '{request.CommandId}' is not implemented by SmartBird Thermostat.")
         };
     }
@@ -348,40 +348,132 @@ public sealed class SmartBirdThermostatModule : IMptModule
         return Succeeded(request, payload.ToJsonString());
     }
 
-    private CommandExecutionResult RestartRequest(CommandRequest request)
+    private async Task<CommandExecutionResult> RestartScheduledTaskAsync(
+        CommandRequest request,
+        CancellationToken cancellationToken)
     {
-        var options = ResolveOptions(request.Args);
-        var details = new JsonObject
+        if (!OperatingSystem.IsWindows())
         {
-            ["moduleId"] = Id,
-            ["broker"] = "ServiceBroker",
-            ["privilegedBroker"] = "PrivilegedBroker",
-            ["actionId"] = "service.restart",
-            ["permissionLevel"] = "serviceUser",
-            ["requiresBroker"] = true,
-            ["scope"] = "SmartBirdThermostat",
-            ["reason"] = ReadString(request.Args, "reason") ?? "Restart SmartBird thermostat service after degraded HTTP or hardware dependency diagnostics.",
-            ["expectedChange"] = new JsonObject
-            {
-                ["scheduledTask"] = options.ScheduledTaskName,
-                ["operation"] = "end-and-run"
-            },
-            ["rollback"] = new JsonArray(new JsonObject
-            {
-                ["operation"] = "status-check",
-                ["endpoint"] = BuildUri(options.BaseUrl, options.StatusPath).ToString()
-            }),
-            ["audit"] = "ServiceBroker must record scheduled-task stop/start results and the post-restart status probe."
-        };
+            return Failed(request, MptErrorCodes.RuntimeUnavailable, "SmartBird scheduled-task restart requires Windows.");
+        }
 
-        return new CommandExecutionResult(
-            request.InvocationId,
-            request.CommandId,
-            "permission-required",
-            false,
-            "",
-            new MptRuntimeError(MptErrorCodes.PermissionRequired, "Broker approval required for service.restart.", false, details));
+        if (!IsInstalledUserDataDirectory(Context.DataDirectory))
+        {
+            return Failed(
+                request,
+                MptErrorCodes.RuntimeUnavailable,
+                "SmartBird scheduled-task restart is available from the installed MyPowerTools user layout.");
+        }
+
+        var options = ResolveOptions(request.Args);
+        var windowsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        var schtasksPath = Path.Combine(windowsDirectory, "System32", "schtasks.exe");
+        if (!File.Exists(schtasksPath))
+        {
+            return Failed(request, MptErrorCodes.RuntimeUnavailable, "Windows Task Scheduler command was not found.");
+        }
+
+        try
+        {
+            var query = await RunScheduledTaskCommandAsync(
+                schtasksPath,
+                ["/Query", "/TN", options.ScheduledTaskName],
+                cancellationToken).ConfigureAwait(false);
+            if (query.ExitCode != 0)
+            {
+                return Failed(
+                    request,
+                    MptErrorCodes.NotFound,
+                    $"SmartBird scheduled task '{options.ScheduledTaskName}' is not installed: {Trim(RedactSensitive(query.Output))}");
+            }
+
+            var ended = await RunScheduledTaskCommandAsync(
+                schtasksPath,
+                ["/End", "/TN", options.ScheduledTaskName],
+                cancellationToken).ConfigureAwait(false);
+            var started = await RunScheduledTaskCommandAsync(
+                schtasksPath,
+                ["/Run", "/TN", options.ScheduledTaskName],
+                cancellationToken).ConfigureAwait(false);
+            if (started.ExitCode != 0)
+            {
+                return Failed(
+                    request,
+                    MptErrorCodes.RuntimeUnavailable,
+                    $"SmartBird scheduled task failed to start: {Trim(RedactSensitive(started.Output))}",
+                    retryable: true);
+            }
+
+            var reason = ReadString(request.Args, "reason") ??
+                         "Restart SmartBird thermostat service after degraded diagnostics.";
+            File.AppendAllText(
+                Path.Combine(Context.LogDirectory, "smartbird-thermostat.log"),
+                $"{DateTimeOffset.UtcNow:O} scheduled task restarted; reason={RedactSensitive(reason)}{Environment.NewLine}");
+            var payload = new JsonObject
+            {
+                ["moduleId"] = Id,
+                ["scheduledTask"] = options.ScheduledTaskName,
+                ["operation"] = "end-and-run",
+                ["uacRequired"] = false,
+                ["endExitCode"] = ended.ExitCode,
+                ["runExitCode"] = started.ExitCode,
+                ["state"] = "restarted"
+            };
+            return Succeeded(request, payload.ToJsonString());
+        }
+        catch (OperationCanceledException)
+        {
+            return Failed(request, MptErrorCodes.CommandCancelled, "SmartBird scheduled-task restart was cancelled.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception)
+        {
+            return Failed(
+                request,
+                MptErrorCodes.RuntimeUnavailable,
+                $"SmartBird scheduled-task restart failed: {ex.GetType().Name}",
+                retryable: true);
+        }
     }
+
+    private static bool IsInstalledUserDataDirectory(string dataDirectory)
+    {
+        var dataRoot = Path.GetFullPath(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MyPowerTools"));
+        var fullPath = Path.GetFullPath(dataDirectory);
+        var prefix = dataRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+                     Path.DirectorySeparatorChar;
+        return fullPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task<ScheduledTaskCommandResult> RunScheduledTaskCommandAsync(
+        string schtasksPath,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = schtasksPath,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo)
+            ?? throw new IOException("Windows Task Scheduler command did not start.");
+        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        var output = string.Join(Environment.NewLine, await outputTask.ConfigureAwait(false), await errorTask.ConfigureAwait(false));
+        return new ScheduledTaskCommandResult(process.ExitCode, output);
+    }
+
+    private sealed record ScheduledTaskCommandResult(int ExitCode, string Output);
 
     private async Task<JsonObject> BuildStatusPayloadAsync(SmartBirdSettings options, CancellationToken cancellationToken)
     {
@@ -1234,4 +1326,3 @@ public sealed class SmartBirdThermostatModule : IMptModule
         }
     }
 }
-
