@@ -30,6 +30,7 @@ public sealed partial class SmartBirdThermostatViewModel
     private string _amapTimeoutSec = "3";
     private string _weatherRefreshSec = "300";
     private string _amapKeyInput = "";
+    private bool _settingsConfirmed;
     private bool _removeStoredAmapKey;
     private bool _hasStoredAmapKey;
     private bool _energyServerEnabled;
@@ -133,6 +134,7 @@ public sealed partial class SmartBirdThermostatViewModel
         ShowSettingsCommand = new MptAsyncRelayCommand(() =>
         {
             IsSettingsVisible = true;
+            _settingsConfirmed = false;
             return Task.CompletedTask;
         });
         SaveSettingsCommand = new MptAsyncRelayCommand(SaveSettingsAsync, () => !IsBusy);
@@ -157,6 +159,14 @@ public sealed partial class SmartBirdThermostatViewModel
 
     private async Task SaveSettingsAsync()
     {
+        if (!_settingsConfirmed)
+        {
+            _settingsConfirmed = true;
+            SettingsStatus = "确认保存并重启服务？再次点击“保存”以确认。";
+            return;
+        }
+
+        _settingsConfirmed = false;
         IsBusy = true;
         try
         {

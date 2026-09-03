@@ -76,6 +76,10 @@
           <TextBlock Classes="MptMeta" Text="{Binding SurfaceLabel}" />
           <TextBlock Classes="MptMeta" Text="·" />
           <TextBlock Classes="MptMeta" Text="{Binding DeviceLabel}" />
+          <TextBlock Classes="MptMeta"
+                     Text="{Binding StalenessWarning}"
+                     IsVisible="{Binding IsStale}"
+                     Foreground="{DynamicResource MptBrushWarning}" />
         </StackPanel>
       </Grid>
 
@@ -119,7 +123,7 @@
                   Padding="{DynamicResource MptOverlayPanelPadding}"
                   HorizontalAlignment="Center"
                   VerticalAlignment="Center">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                   RowSpacing="18">
               <Border Width="56"
                       Height="56"
@@ -144,7 +148,16 @@
                            TextWrapping="Wrap" />
               </StackPanel>
 
-              <Border Grid.Row="2"
+              <StackPanel Grid.Row="2"
+                          Spacing="8"
+                          IsVisible="{Binding IsServiceOnline}">
+                <TextBlock Text="{Binding SurfaceLabel}" FontSize="28" FontWeight="Bold" />
+                <TextBlock Text="{Binding CoolingLabel}" Classes="MptMeta" />
+                <TextBlock Text="{Binding ModeLabel}" Classes="MptMeta" />
+                <TextBlock Text="{Binding DeviceLabel}" Classes="MptMeta" />
+              </StackPanel>
+
+              <Border Grid.Row="3"
                       Classes="MptInset">
                 <StackPanel Spacing="{DynamicResource MptSpacingXs}">
                   <TextBlock Classes="MptMeta"
@@ -157,7 +170,7 @@
                 </StackPanel>
               </Border>
 
-              <StackPanel Grid.Row="3"
+              <StackPanel Grid.Row="4"
                           Orientation="Horizontal"
                           Spacing="{DynamicResource MptSpacingS}">
                 <controls:MptButton Classes="MptPrimaryButton"
