@@ -56,6 +56,7 @@ public partial class SmartBirdThermostatView : UserControl, IDisposable
         _viewModel = DataContext as SmartBirdThermostatViewModel;
         if (_viewModel is not null)
         {
+            _viewModel.EnableSingleClickSettingsSave();
             _viewModel.PropertyChanged += HandleViewModelPropertyChanged;
             _webSurface.SetSource(_viewModel.DashboardUri);
         }
