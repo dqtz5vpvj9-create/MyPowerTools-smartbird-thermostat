@@ -197,7 +197,7 @@
                     VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="24"
                     Spacing="16">
-          <Grid ColumnDefinitions="*,Auto,Auto,Auto"
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
                 ColumnSpacing="8">
             <StackPanel Spacing="4">
               <TextBlock Classes="MptSectionTitle" Text="SmartBird 环境设置" />
@@ -215,6 +215,10 @@
                                 Command="{Binding StopEnergyServerCommand}"
                                 Content="停止 Energy Server" />
             <controls:MptButton Grid.Column="3"
+                                Command="{Binding SaveSettingsOnlyCommand}"
+                                Content="仅保存"
+                                ToolTip.Tip="保存配置，不中断正在运行的温控任务。" />
+            <controls:MptButton Grid.Column="4"
                                 Classes="MptPrimaryButton"
                                 Command="{Binding SaveSettingsCommand}"
                                 Content="保存并重启服务" />

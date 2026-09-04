@@ -103,7 +103,8 @@ public sealed class SmartBirdThermostatSettingsService
         return new SmartBirdSettingsState(settings, !string.IsNullOrEmpty(amap), !string.IsNullOrEmpty(smtp), SettingsPath);
     }
 
-    public async Task<SmartBirdSettingsApplyResult> SaveAndApplyAsync(
+    /// <summary>Saves configuration without requiring an installed runtime or restarting any service.</summary>
+    public async Task<SmartBirdSettingsState> SaveAsync(
         SmartBirdThermostatSettings settings,
         string? amapKey,
         string? smtpPassword,
@@ -123,6 +124,16 @@ public sealed class SmartBirdThermostatSettingsService
             await SaveOrDeleteSecretAsync(SmtpSecretName, smtpPassword, cancellationToken).ConfigureAwait(false);
         }
 
+        return await LoadAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<SmartBirdSettingsApplyResult> SaveAndApplyAsync(
+        SmartBirdThermostatSettings settings,
+        string? amapKey,
+        string? smtpPassword,
+        CancellationToken cancellationToken = default)
+    {
+        await SaveAsync(settings, amapKey, smtpPassword, cancellationToken).ConfigureAwait(false);
         var runtime = ResolveRuntimeLayout();
         await RunTaskInstallerAsync(
             runtime.SmartBirdInstaller,

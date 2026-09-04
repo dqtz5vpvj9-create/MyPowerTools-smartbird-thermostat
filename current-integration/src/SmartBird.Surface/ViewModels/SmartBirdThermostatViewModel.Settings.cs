@@ -30,7 +30,6 @@ public sealed partial class SmartBirdThermostatViewModel
     private string _amapTimeoutSec = "3";
     private string _weatherRefreshSec = "300";
     private string _amapKeyInput = "";
-    private bool _settingsConfirmed;
     private bool _removeStoredAmapKey;
     private bool _hasStoredAmapKey;
     private bool _energyServerEnabled;
@@ -61,6 +60,7 @@ public sealed partial class SmartBirdThermostatViewModel
     public ICommand ShowConsoleCommand { get; private set; } = null!;
     public ICommand ShowSettingsCommand { get; private set; } = null!;
     public ICommand SaveSettingsCommand { get; private set; } = null!;
+    public ICommand SaveSettingsOnlyCommand { get; private set; } = null!;
     public ICommand TestConnectionsCommand { get; private set; } = null!;
     public ICommand StartEnergyServerCommand { get; private set; } = null!;
     public ICommand StopEnergyServerCommand { get; private set; } = null!;
@@ -134,10 +134,10 @@ public sealed partial class SmartBirdThermostatViewModel
         ShowSettingsCommand = new MptAsyncRelayCommand(() =>
         {
             IsSettingsVisible = true;
-            _settingsConfirmed = false;
             return Task.CompletedTask;
         });
-        SaveSettingsCommand = new MptAsyncRelayCommand(SaveSettingsAsync, () => !IsBusy);
+        SaveSettingsCommand = new MptAsyncRelayCommand(() => SaveSettingsAsync(restartServices: true), () => !IsBusy);
+        SaveSettingsOnlyCommand = new MptAsyncRelayCommand(() => SaveSettingsAsync(restartServices: false), () => !IsBusy);
         TestConnectionsCommand = new MptAsyncRelayCommand(TestConnectionsAsync, () => !IsBusy);
         StartEnergyServerCommand = new MptAsyncRelayCommand(StartEnergyServerAsync, () => !IsBusy);
         StopEnergyServerCommand = new MptAsyncRelayCommand(StopEnergyServerAsync, () => !IsBusy);
@@ -157,38 +157,40 @@ public sealed partial class SmartBirdThermostatViewModel
         }
     }
 
-    private async Task SaveSettingsAsync()
+    private async Task SaveSettingsAsync(bool restartServices)
     {
-        if (!_settingsConfirmed)
-        {
-            _settingsConfirmed = true;
-            SettingsStatus = "确认保存并重启服务？再次点击“保存”以确认。";
-            return;
-        }
-
-        _settingsConfirmed = false;
         IsBusy = true;
         try
         {
-            SettingsStatus = "正在保存并重启后台任务…";
-            var result = await _settingsService.SaveAndApplyAsync(
-                BuildSettings(),
-                RemoveStoredAmapKey ? "" : EmptyToNull(AmapKeyInput),
-                RemoveStoredSmtpPassword ? "" : EmptyToNull(SmtpPasswordInput)).ConfigureAwait(true);
-            ApplySettingsState(result.State);
+            SettingsStatus = restartServices ? "正在保存并重启后台任务…" : "正在保存配置（不重启服务）…";
+            var settings = BuildSettings();
+            var amapKey = RemoveStoredAmapKey ? "" : EmptyToNull(AmapKeyInput);
+            var smtpPassword = RemoveStoredSmtpPassword ? "" : EmptyToNull(SmtpPasswordInput);
+            string message;
+            if (restartServices)
+            {
+                var result = await _settingsService.SaveAndApplyAsync(settings, amapKey, smtpPassword).ConfigureAwait(true);
+                ApplySettingsState(result.State);
+                message = result.Message;
+            }
+            else
+            {
+                ApplySettingsState(await _settingsService.SaveAsync(settings, amapKey, smtpPassword).ConfigureAwait(true));
+                message = "配置已保存，服务未重启。需要立即应用时，点击“保存并重启服务”。";
+            }
             AmapKeyInput = "";
             SmtpPasswordInput = "";
             RemoveStoredAmapKey = false;
             RemoveStoredSmtpPassword = false;
-            SettingsStatus = result.Message;
-            if (_refresh is not null)
+            SettingsStatus = message;
+            if (restartServices && _refresh is not null)
             {
                 ApplySnapshot(await _refresh().ConfigureAwait(true));
             }
         }
         catch (Exception ex)
         {
-            SettingsStatus = $"应用失败：{ex.Message}";
+            SettingsStatus = restartServices ? $"应用失败：{ex.Message}" : $"保存失败：{ex.Message}";
         }
         finally
         {
@@ -325,6 +327,7 @@ public sealed partial class SmartBirdThermostatViewModel
     private void NotifySettingsCommandStateChanged()
     {
         if (SaveSettingsCommand is MptAsyncRelayCommand save) save.NotifyCanExecuteChanged();
+        if (SaveSettingsOnlyCommand is MptAsyncRelayCommand saveOnly) saveOnly.NotifyCanExecuteChanged();
         if (TestConnectionsCommand is MptAsyncRelayCommand test) test.NotifyCanExecuteChanged();
         if (StartEnergyServerCommand is MptAsyncRelayCommand start) start.NotifyCanExecuteChanged();
         if (StopEnergyServerCommand is MptAsyncRelayCommand stop) stop.NotifyCanExecuteChanged();
