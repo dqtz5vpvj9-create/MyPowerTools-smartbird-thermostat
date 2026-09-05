@@ -1,4 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:shortcuts="using:MyPowerTools.AvaloniaSdk"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:SmartBird.Surface.Views"
              xmlns:controls="using:MyPowerTools.UI.Controls"
@@ -87,15 +88,15 @@
                   Orientation="Horizontal"
                   Spacing="{DynamicResource MptSpacingS}"
                   VerticalAlignment="Center">
-        <controls:MptButton Command="{Binding ShowConsoleCommand}"
+        <controls:MptButton Command="{Binding ShowConsoleCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.show-console"
                             Content="控制台" />
-        <controls:MptButton Command="{Binding ShowSettingsCommand}"
+        <controls:MptButton Command="{Binding ShowSettingsCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.show-settings"
                             Content="环境设置" />
-        <controls:MptButton Command="{Binding RefreshCommand}"
+        <controls:MptButton Command="{Binding RefreshCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.refresh"
                             Content="刷新"
                             IsVisible="{Binding IsConsoleVisible}" />
         <controls:MptButton Classes="MptPrimaryButton"
-                            Command="{Binding OpenInBrowserCommand}"
+                            Command="{Binding OpenInBrowserCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.open-in-browser"
                             Content="在浏览器中打开"
                             IsVisible="{Binding IsConsoleVisible}" />
       </StackPanel>
@@ -174,12 +175,12 @@
                           Orientation="Horizontal"
                           Spacing="{DynamicResource MptSpacingS}">
                 <controls:MptButton Classes="MptPrimaryButton"
-                                    Command="{Binding StartServiceCommand}"
+                                    Command="{Binding StartServiceCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.start-service"
                                     Content="启动后台服务"
                                     IsVisible="{Binding ShowStartServiceAction}" />
-                <controls:MptButton Command="{Binding RefreshCommand}"
+                <controls:MptButton Command="{Binding RefreshCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.refresh"
                                     Content="重试" />
-                <controls:MptButton Command="{Binding OpenInBrowserCommand}"
+                <controls:MptButton Command="{Binding OpenInBrowserCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.open-in-browser"
                                     Content="在浏览器中打开" />
               </StackPanel>
             </Grid>
@@ -209,18 +210,18 @@
                          TextWrapping="Wrap" />
             </StackPanel>
             <controls:MptButton Grid.Column="1"
-                                Command="{Binding TestConnectionsCommand}"
+                                Command="{Binding TestConnectionsCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.test-connections"
                                 Content="测试环境" />
             <controls:MptButton Grid.Column="2"
-                                Command="{Binding StopEnergyServerCommand}"
+                                Command="{Binding StopEnergyServerCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.stop-energy-server"
                                 Content="停止 Energy Server" />
             <controls:MptButton Grid.Column="3"
-                                Command="{Binding SaveSettingsOnlyCommand}"
+                                Command="{Binding SaveSettingsOnlyCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.save-settings-only"
                                 Content="仅保存"
                                 ToolTip.Tip="保存配置，不中断正在运行的温控任务。" />
             <controls:MptButton Grid.Column="4"
                                 Classes="MptPrimaryButton"
-                                Command="{Binding SaveSettingsCommand}"
+                                Command="{Binding SaveSettingsCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.save-settings"
                                 Content="保存并重启服务" />
           </Grid>
 
@@ -311,8 +312,8 @@
                              Text="启用本机任务时，URL 必须使用 http://127.0.0.1:&lt;port&gt;/。关闭本机任务后可填写完整的远程 HTTP/HTTPS URL。"
                              TextWrapping="Wrap" />
                 </StackPanel>
-                <controls:MptButton Grid.Column="1" Command="{Binding StartEnergyServerCommand}" Content="启动" />
-                <controls:MptButton Grid.Column="2" Command="{Binding StopEnergyServerCommand}" Content="停止" />
+                <controls:MptButton Grid.Column="1" Command="{Binding StartEnergyServerCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.start-energy-server" Content="启动" />
+                <controls:MptButton Grid.Column="2" Command="{Binding StopEnergyServerCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.stop-energy-server" Content="停止" />
               </Grid>
               <Grid ColumnDefinitions="2*,*,*,2*"
                     ColumnSpacing="12">
