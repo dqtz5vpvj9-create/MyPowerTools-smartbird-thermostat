@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:shortcuts="using:MyPowerTools.AvaloniaSdk"
+             xmlns:adaptive="using:MyPowerTools.AvaloniaSdk"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:SmartBird.Surface.Views"
              xmlns:controls="using:MyPowerTools.UI.Controls"
@@ -28,9 +29,9 @@
 
   <Grid RowDefinitions="Auto,*"
         RowSpacing="10">
-    <Grid ColumnDefinitions="*,Auto"
+    <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="*,Auto"
           ColumnSpacing="20">
-      <Grid ColumnDefinitions="Auto,Auto,*"
+      <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="Auto,Auto,*"
             ColumnSpacing="12"
             VerticalAlignment="Center">
         <TextBlock Classes="MptPageTitle"
@@ -41,7 +42,7 @@
           <Border Classes="SmartBirdOnlineBadge"
                   IsVisible="{Binding IsServiceOnline}"
                   VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal"
+            <StackPanel adaptive:MptAdaptiveLayout.StackBelow="480" Orientation="Horizontal"
                         Spacing="{DynamicResource MptSpacingS}">
               <Ellipse Width="7"
                        Height="7"
@@ -54,7 +55,7 @@
           <Border Classes="SmartBirdOfflineBadge"
                   IsVisible="{Binding IsServiceOffline}"
                   VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal"
+            <StackPanel adaptive:MptAdaptiveLayout.StackBelow="480" Orientation="Horizontal"
                         Spacing="{DynamicResource MptSpacingS}">
               <Ellipse Width="7"
                        Height="7"
@@ -65,7 +66,7 @@
             </StackPanel>
           </Border>
         </Grid>
-        <StackPanel Grid.Column="2"
+        <StackPanel adaptive:MptAdaptiveLayout.StackBelow="480" Grid.Column="2"
                     Orientation="Horizontal"
                     Spacing="{DynamicResource MptSpacingM}"
                     VerticalAlignment="Center"
@@ -84,7 +85,7 @@
         </StackPanel>
       </Grid>
 
-      <StackPanel Grid.Column="1"
+      <StackPanel adaptive:MptAdaptiveLayout.StackBelow="480" Grid.Column="1"
                   Orientation="Horizontal"
                   Spacing="{DynamicResource MptSpacingS}"
                   VerticalAlignment="Center">
@@ -119,7 +120,7 @@
         <Grid IsVisible="{Binding IsFallbackVisible}"
               Margin="{DynamicResource MptPagePadding}">
           <Border Classes="MptCard"
-                  Width="620"
+
                   MaxWidth="620"
                   Padding="{DynamicResource MptOverlayPanelPadding}"
                   HorizontalAlignment="Center"
@@ -171,7 +172,7 @@
                 </StackPanel>
               </Border>
 
-              <StackPanel Grid.Row="4"
+              <StackPanel adaptive:MptAdaptiveLayout.StackBelow="480" Grid.Row="4"
                           Orientation="Horizontal"
                           Spacing="{DynamicResource MptSpacingS}">
                 <controls:MptButton Classes="MptPrimaryButton"
@@ -198,7 +199,7 @@
                     VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="24"
                     Spacing="16">
-          <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+          <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
                 ColumnSpacing="8">
             <StackPanel Spacing="4">
               <TextBlock Classes="MptSectionTitle" Text="SmartBird 环境设置" />
@@ -228,7 +229,7 @@
           <Border Classes="MptInset" Padding="18">
             <StackPanel Spacing="12">
               <TextBlock Classes="MptSectionTitle" Text="服务与设备" />
-              <Grid ColumnDefinitions="*,*,*,*"
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="*,*,*,*"
                     ColumnSpacing="12"
                     RowDefinitions="Auto,Auto">
                 <StackPanel Spacing="5">
@@ -259,7 +260,7 @@
           <Border Classes="MptInset" Padding="18">
             <StackPanel Spacing="12">
               <TextBlock Classes="MptSectionTitle" Text="温控策略" />
-              <Grid ColumnDefinitions="*,*,*,*"
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="*,*,*,*"
                     ColumnSpacing="12"
                     RowDefinitions="Auto,Auto">
                 <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="循环周期（秒）" /><TextBox Text="{Binding LoopSec}" /></StackPanel>
@@ -277,7 +278,7 @@
           <Border Classes="MptInset" Padding="18">
             <StackPanel Spacing="12">
               <TextBlock Classes="MptSectionTitle" Text="天气与备用环境" />
-              <Grid ColumnDefinitions="*,*,*,*,*"
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="*,*,*,*,*"
                     ColumnSpacing="12">
                 <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="备用温度（°C）" /><TextBox Text="{Binding DefaultAmbientC}" /></StackPanel>
                 <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="备用湿度（%）" /><TextBox Text="{Binding DefaultRh}" /></StackPanel>
@@ -285,7 +286,7 @@
                 <StackPanel Grid.Column="3" Spacing="5"><TextBlock Classes="MptMeta" Text="请求超时（秒）" /><TextBox Text="{Binding AmapTimeoutSec}" /></StackPanel>
                 <StackPanel Grid.Column="4" Spacing="5"><TextBlock Classes="MptMeta" Text="刷新周期（秒）" /><TextBox Text="{Binding WeatherRefreshSec}" /></StackPanel>
               </Grid>
-              <Grid ColumnDefinitions="*,Auto"
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="*,Auto"
                     ColumnSpacing="12">
                 <StackPanel Spacing="5">
                   <TextBlock Classes="MptMeta" Text="高德 API Key（保存在 Windows Credential Manager）" />
@@ -303,7 +304,7 @@
 
           <Border Classes="MptInset" Padding="18">
             <StackPanel Spacing="12">
-              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                 <StackPanel>
                   <TextBlock Classes="MptSectionTitle" Text="Energy Server 与 USB Meter" />
                   <CheckBox IsChecked="{Binding EnergyServerEnabled}"
@@ -315,7 +316,7 @@
                 <controls:MptButton Grid.Column="1" Command="{Binding StartEnergyServerCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.start-energy-server" Content="启动" />
                 <controls:MptButton Grid.Column="2" Command="{Binding StopEnergyServerCommand}" shortcuts:MptShortcutHint.CommandId="smartbird-thermostat.ui.stop-energy-server" Content="停止" />
               </Grid>
-              <Grid ColumnDefinitions="2*,*,*,2*"
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="2*,*,*,2*"
                     ColumnSpacing="12">
                 <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="Energy Server URL" /><TextBox Text="{Binding EnergyServerUrl}" /></StackPanel>
                 <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="后端" /><ComboBox ItemsSource="{Binding EnergyBackendOptions}" SelectedItem="{Binding EnergyBackend}" /></StackPanel>
@@ -331,19 +332,19 @@
             <StackPanel Spacing="12">
               <TextBlock Classes="MptSectionTitle" Text="邮件通知" />
               <CheckBox IsChecked="{Binding NotificationsEnabled}" Content="启用异常和恢复邮件" />
-              <Grid ColumnDefinitions="2*,*,2*,2*" ColumnSpacing="12">
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="2*,*,2*,2*" ColumnSpacing="12">
                 <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="SMTP 主机" /><TextBox Text="{Binding SmtpHost}" /></StackPanel>
                 <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="端口" /><TextBox Text="{Binding SmtpPort}" /></StackPanel>
                 <StackPanel Grid.Column="2" Spacing="5"><TextBlock Classes="MptMeta" Text="用户名" /><TextBox Text="{Binding SmtpUsername}" /></StackPanel>
                 <StackPanel Grid.Column="3" Spacing="5"><TextBlock Classes="MptMeta" Text="发件人" /><TextBox Text="{Binding SmtpSender}" /></StackPanel>
               </Grid>
-              <Grid ColumnDefinitions="2*,2*,Auto,Auto" ColumnSpacing="12">
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="2*,2*,Auto,Auto" ColumnSpacing="12">
                 <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="收件人（逗号分隔）" /><TextBox Text="{Binding SmtpRecipients}" /></StackPanel>
                 <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="SMTP 密码（Credential Manager）" /><TextBox Text="{Binding SmtpPasswordInput}" PasswordChar="●" PlaceholderText="{Binding SmtpPasswordState}" /></StackPanel>
                 <CheckBox Grid.Column="2" VerticalAlignment="Bottom" IsChecked="{Binding SmtpSsl}" Content="SSL" />
                 <CheckBox Grid.Column="3" VerticalAlignment="Bottom" IsChecked="{Binding SmtpStartTls}" Content="STARTTLS" />
               </Grid>
-              <Grid ColumnDefinitions="*,*,*,Auto,Auto" ColumnSpacing="12">
+              <Grid adaptive:MptAdaptiveLayout.StackBelow="600" ColumnDefinitions="*,*,*,Auto,Auto" ColumnSpacing="12">
                 <StackPanel Spacing="5"><TextBlock Classes="MptMeta" Text="检查周期（秒）" /><TextBox Text="{Binding NotificationMonitorSec}" /></StackPanel>
                 <StackPanel Grid.Column="1" Spacing="5"><TextBlock Classes="MptMeta" Text="冷却时间（秒）" /><TextBox Text="{Binding NotificationCooldownSec}" /></StackPanel>
                 <StackPanel Grid.Column="2" Spacing="5"><TextBlock Classes="MptMeta" Text="期望最少设备" /><TextBox Text="{Binding NotificationExpectedMinDevices}" /></StackPanel>
