@@ -408,6 +408,24 @@ class TestSmartBirdThermostatService(unittest.TestCase):
         self.assertEqual(data["reading"]["devices"], ["FNB-58-1"])
         self.assertEqual(data["reading"]["values"]["FNB-58-1"]["nrg"], "0.1234 Wh")
 
+    def test_manual_switch_rejects_fractional_keys_without_controlling_device(self):
+        for key in (1.5, 0.9, True):
+            with self.subTest(key=key):
+                before = list(self.fake.calls)
+                status, data = self.request_json("POST", "/api/switch", {"key": key})
+                self.assertEqual(status, 400)
+                self.assertIn("key", data["error"])
+                self.assertEqual(self.fake.calls, before)
+
+    def test_control_api_rejects_non_object_json_as_bad_request(self):
+        for payload in ([], [1], "start"):
+            with self.subTest(payload=payload):
+                before = list(self.fake.calls)
+                status, data = self.request_json("POST", "/session/start", payload)
+                self.assertEqual(status, 400)
+                self.assertIn("object", data["error"])
+                self.assertEqual(self.fake.calls, before)
+
     def test_manual_switch_api_forces_key_and_records_event(self):
         status, data = self.request_json(
             "POST",
@@ -631,6 +649,37 @@ class TestSmartBirdThermostatService(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(data["mode"], MODE_PROTECTION)
         self.assertEqual(data["active_session_ids"], [])
+
+    def test_pause_and_end_return_last_session_to_protection(self):
+        for endpoint in ("/session/pause", "/session/end"):
+            with self.subTest(endpoint=endpoint):
+                self.request_json("POST", "/session/start", {"session_id": "fake-flow"})
+                status, data = self.request_json("POST", endpoint, {"session_id": "fake-flow"})
+                self.assertEqual(status, 200)
+                self.assertEqual(data["active_session_ids"], [])
+                self.assertEqual(data["mode"], MODE_PROTECTION)
+                self.assertEqual(self.fake.events()[-1]["action"], endpoint.rsplit("/", 1)[1])
+
+    def test_explicit_experiment_mode_and_evaluate_reach_controller(self):
+        status, data = self.request_json("POST", "/mode/experiment", {"reason": "fake-experiment"})
+        self.assertEqual(status, 200)
+        self.assertEqual(data["mode"], MODE_EXPERIMENT)
+        self.assertIn(("experiment", "fake-experiment"), self.fake.calls)
+        status, _data = self.request_json("POST", "/evaluate", {"reason": "fake-refresh"})
+        self.assertEqual(status, 200)
+        self.assertIn(("evaluate", "fake-refresh"), self.fake.calls)
+
+    def test_unknown_routes_and_invalid_integer_keys_preserve_controller(self):
+        before = list(self.fake.calls)
+        status, data = self.request_json("POST", "/api/switch", {"key": 2})
+        self.assertEqual(status, 400)
+        self.assertIn("key", data["error"])
+        self.assertEqual(self.fake.calls, before)
+        for method in ("GET", "POST"):
+            status, data = self.request_json(method, "/nonexistent", {} if method == "POST" else None)
+            self.assertEqual(status, 404)
+            self.assertEqual(data["error"], "not_found")
+        self.assertEqual(self.fake.calls, before)
 
     def test_manual_protection_clears_sessions(self):
         self.request_json("POST", "/session/start", {"session_id": "manual-a"})

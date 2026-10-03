@@ -313,6 +313,24 @@ public sealed class SmartBirdThermostatSettingsService
 
     private static void Validate(SmartBirdThermostatSettings settings)
     {
+        double[] numericValues =
+        [
+            settings.LoopSec, settings.MinOnSec, settings.MinOffSec, settings.MarginC,
+            settings.CondensationGuardC, settings.MinSurfaceC, settings.OnSurfaceC,
+            settings.HysteresisC, settings.DefaultAmbientC, settings.DefaultRh,
+            settings.AmapTimeoutSec, settings.WeatherRefreshSec,
+            settings.NotificationMonitorSec, settings.NotificationCooldownSec
+        ];
+        if (numericValues.Any(value => !double.IsFinite(value)))
+        {
+            throw new InvalidOperationException("温控、天气与通知参数必须是有限数字。");
+        }
+        if (settings.AmapTimeoutSec <= 0 || settings.WeatherRefreshSec <= 0 ||
+            settings.NotificationMonitorSec <= 0 || settings.NotificationCooldownSec < 0 ||
+            settings.NotificationExpectedMinDevices < 0)
+        {
+            throw new InvalidOperationException("天气超时、刷新和通知检查周期必须大于零；通知冷却时间和期望设备数必须大于或等于零。");
+        }
         if (settings.ServicePort is < 1 or > 65535 || settings.SmartBirdPort is < 1 or > 65535 ||
             settings.SmtpPort is < 1 or > 65535)
         {
