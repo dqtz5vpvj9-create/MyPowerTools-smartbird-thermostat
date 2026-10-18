@@ -153,7 +153,12 @@ Current cooling devices from HAL:
         ):
             resolved = AndroidThermalReader._resolve_adb_executable()
 
-        self.assertTrue(resolved.endswith(r"Tools\AndroidPlatformTools\adb.exe"))
+        # Path uses the host separator; compare components so the Windows bundle
+        # contract is still checked when these isolated tests run on Linux/macOS.
+        self.assertEqual(
+            Path(resolved).parts[-3:],
+            ("Tools", "AndroidPlatformTools", "adb.exe"),
+        )
 
     def test_experiment_start_forces_cooling_on(self):
         thermostat, switch, _clock = make_thermostat(surface_c=22.0, switch_key=KEY_OFF)

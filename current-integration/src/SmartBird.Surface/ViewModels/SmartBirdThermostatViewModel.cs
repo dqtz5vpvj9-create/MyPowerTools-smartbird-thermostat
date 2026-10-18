@@ -81,6 +81,8 @@ public sealed partial class SmartBirdThermostatViewModel : MyPowerTools.Avalonia
     public string ConnectionDetail => _snapshot.StatusDetail;
     public string StatusTitle => _snapshot.StatusTitle;
     public string CheckedAtLabel => $"上次检查 {_snapshot.CheckedAt:HH:mm:ss}";
+    public bool IsStale => (DateTimeOffset.Now - _snapshot.CheckedAt).TotalMinutes > 2;
+    public string StalenessWarning => IsStale ? "数据可能已过期，请刷新" : "";
     public string ModeLabel => _snapshot.Mode switch
     {
         "dewpoint_protection" => "露点保护",
@@ -278,6 +280,8 @@ public sealed partial class SmartBirdThermostatViewModel : MyPowerTools.Avalonia
         OnPropertyChanged(nameof(ConnectionDetail));
         OnPropertyChanged(nameof(StatusTitle));
         OnPropertyChanged(nameof(CheckedAtLabel));
+        OnPropertyChanged(nameof(IsStale));
+        OnPropertyChanged(nameof(StalenessWarning));
         OnPropertyChanged(nameof(ModeLabel));
         OnPropertyChanged(nameof(CoolingLabel));
         OnPropertyChanged(nameof(SurfaceLabel));
