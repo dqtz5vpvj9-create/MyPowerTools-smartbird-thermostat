@@ -1598,10 +1598,10 @@ def make_handler(service: ThermostatSessionService):
                     self._write_json(200, service.energy_reading())
                     return
                 if self.path == "/api/switch":
-                    try:
-                        key = int(payload.get("key"))
-                    except (TypeError, ValueError):
+                    raw_key = payload.get("key")
+                    if (type(raw_key) is not int or raw_key not in {0, 1}) and raw_key not in ("0", "1"):
                         raise ValueError("key must be 0 or 1")
+                    key = int(raw_key)
                     response = service.manual_switch(
                         key,
                         reason=str(payload.get("reason") or "manual_switch"),
@@ -1623,7 +1623,10 @@ def make_handler(service: ThermostatSessionService):
             if length <= 0:
                 return {}
             raw = self.rfile.read(length).decode("utf-8")
-            return json.loads(raw) if raw.strip() else {}
+            payload = json.loads(raw) if raw.strip() else {}
+            if not isinstance(payload, dict):
+                raise ValueError("JSON body must be an object")
+            return payload
 
         def _write_json(self, status: int, payload) -> None:
             body = json.dumps(payload, ensure_ascii=True).encode("utf-8")

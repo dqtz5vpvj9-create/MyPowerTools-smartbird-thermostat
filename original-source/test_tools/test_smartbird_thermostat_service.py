@@ -408,6 +408,24 @@ class TestSmartBirdThermostatService(unittest.TestCase):
         self.assertEqual(data["reading"]["devices"], ["FNB-58-1"])
         self.assertEqual(data["reading"]["values"]["FNB-58-1"]["nrg"], "0.1234 Wh")
 
+    def test_manual_switch_rejects_fractional_keys_without_controlling_device(self):
+        for key in (1.5, 0.9, True):
+            with self.subTest(key=key):
+                before = list(self.fake.calls)
+                status, data = self.request_json("POST", "/api/switch", {"key": key})
+                self.assertEqual(status, 400)
+                self.assertIn("key", data["error"])
+                self.assertEqual(self.fake.calls, before)
+
+    def test_control_api_rejects_non_object_json_as_bad_request(self):
+        for payload in ([], [1], "start"):
+            with self.subTest(payload=payload):
+                before = list(self.fake.calls)
+                status, data = self.request_json("POST", "/session/start", payload)
+                self.assertEqual(status, 400)
+                self.assertIn("object", data["error"])
+                self.assertEqual(self.fake.calls, before)
+
     def test_manual_switch_api_forces_key_and_records_event(self):
         status, data = self.request_json(
             "POST",
